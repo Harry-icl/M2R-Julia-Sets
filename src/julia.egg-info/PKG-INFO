@@ -1,0 +1,14 @@
+Metadata-Version: 1.2
+Name: julia
+Version: 0.1
+Summary: A package for drawing Julia sets and external/internal rays associated with cubic maps and the Newton maps associated with them.
+Home-page: https://github.com/Harry-icl/M2R-Julia-Sets
+Author: Kaito Arai, Rowan Hobson, Harrison Mouat, Jan Panek, Baptiste Simandoux
+Author-email: kaito.arai19@imperial.ac.uk, rowan.hobson19@imperial.ac.uk, harrison.mouat19@imperial.ac.uk, jan.panek19@imperial.ac.uk, baptiste.simandoux19@imperial.ac.uk
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/Harry-icl/M2R-Julia-Sets/issues
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6

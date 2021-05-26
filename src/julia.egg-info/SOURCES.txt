@@ -1,0 +1,9 @@
+README.md
+setup.cfg
+setup.py
+src/julia/__init__.py
+src/julia/map.py
+src/julia.egg-info/PKG-INFO
+src/julia.egg-info/SOURCES.txt
+src/julia.egg-info/dependency_links.txt
+src/julia.egg-info/top_level.txt
