@@ -1,5 +1,7 @@
 """Module containing all of the classes for mappings."""
 from abc import ABC, abstractmethod
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Map(ABC):
@@ -28,9 +30,9 @@ class Map(ABC):
 
 
 class PolynomialMap(Map):
-    """A polynomial mapping f: C -> C."""
+    """A polynomial mapping f: C -> C with a parameter c."""
 
-    def __init__(self, coefficients: tuple) -> None:
+    def __init__(self, coefficients: tuple, power: int, c: complex=None) -> None:
         """
         Construct an instance of the PolynomialMap class.
 
@@ -41,11 +43,18 @@ class PolynomialMap(Map):
         ----------
         coefficients: tuple(complex)
             A tuple of coefficients from smallest order to largest, i.e. (a, b, c, d) would correspond to the polynomial a + bz + cz^2 + dz^3.
+        power: int
+            The power of z in the term with c.
         """
         self.coefficients = coefficients
+        self.power = power
+        self.c = c
 
     def __call__(self, z: complex) -> complex:  # noqa D102
-        return sum([a*z**i for i, a in enumerate(self.coefficients)])
+        if self.c:
+            return sum([a*z**i for i, a in enumerate(self.coefficients)]) + self.c*z**self.power
+        else:
+            raise ValueError("No value set for c.")
     
     def derivative(self) -> "PolynomialMap":
         """
@@ -57,6 +66,26 @@ class PolynomialMap(Map):
             The derivative of the polynomial.
         """
         return PolynomialMap(tuple((i + 1)*a for i, a in enumerate(self.coefficients[1:])))
+    
+    def _calculate_mandelbrot(self, res_x: int=600, res_y: int=600, max_x: float=2, max_y: float=2, iterations: int=200):
+        results = np.ones((res_x, res_y), dtype=bool)
+        for x_i, x in enumerate(np.linspace(-max_x, max_x, res_x)):
+            for y_i, y in enumerate(np.linspace(-max_y, max_y, res_y)):
+                self.c = complex(x, y)
+                z = complex(0)
+                for _ in range(iterations):
+                    z = self(z)
+                    if abs(z) > 2:
+                        results[x_i, y_i] = False
+                        break
+                
+        return results
+    
+    def draw_mandelbrot(self, res_x: int=600, res_y: int=600, max_x: float=2, max_y: float=2, iterations: int=200):
+        results = self._calculate_mandelbrot()
+        points = [(x, y) for x_i, x in enumerate(np.linspace(-max_x, max_x, res_x)) for y_i, y in enumerate(np.linspace(-max_y, max_y, res_y)) if results[x_i, y_i]]
+        plt.scatter([point[0] for point in points], [point[1] for point in points], s=0.1)
+        plt.show()                    
 
 
 class PolynomialNewtonMap(Map):
