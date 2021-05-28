@@ -77,11 +77,19 @@ class CubicMap(Map):
         for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
             for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
                 self.b = complex(x, y)
-                z = complex(0)
+                z1 = c1
+                z2 = c2
                 i = 0
+                z1_diverge = False
+                z2_diverge = False
                 while i < iterations:
-                    z = self(z)
-                    if abs(z) > 3:
+                    z1 = self(z1) if not z1_diverge else z1
+                    z2 = self(z2) if not z2_diverge else z2
+                    if abs(z1 - c1) > 3:
+                        z1_diverge = True
+                    if abs(z2 - c2) > 3: 
+                        z2_diverge = True
+                    if z1_diverge and z2_diverge:
                         results[x_i, y_i] = i/iterations
                         break
                     i += 1
