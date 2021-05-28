@@ -70,7 +70,8 @@ class CubicMap(Map):
                              res_y: int = 600,
                              iterations: int = 200,
                              x_range: tuple = (-3, 3),
-                             y_range: tuple = (-3, 3)) -> np.ndarray:
+                             y_range: tuple = (-3, 3),
+                             z_max: float = 3) -> np.ndarray:
         results = np.ones((res_x, res_y))
         c1 = -cmath.sqrt(self.a/3)
         c2 = cmath.sqrt(self.a/3)
@@ -85,9 +86,9 @@ class CubicMap(Map):
                 while i < iterations:
                     z1 = self(z1) if not z1_diverge else z1
                     z2 = self(z2) if not z2_diverge else z2
-                    if abs(z1 - c1) > 3:
+                    if abs(z1 - c1) > z_max:
                         z1_diverge = True
-                    if abs(z2 - c2) > 3: 
+                    if abs(z2 - c2) > z_max: 
                         z2_diverge = True
                     if z1_diverge and z2_diverge:
                         results[x_i, y_i] = i/iterations
@@ -101,8 +102,42 @@ class CubicMap(Map):
                         res_y: int = 600,
                         iterations: int = 200,
                         x_range: tuple = (-3, 3),
-                        y_range: tuple = (-3, 3)):
-        results = self._calculate_multibrot(res_x, res_y, iterations, x_range, y_range)
+                        y_range: tuple = (-3, 3),
+                        z_max: float = 3):
+        results = self._calculate_multibrot(res_x, res_y, iterations, x_range, y_range, z_max)
+        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
+        im.show()
+        return im
+
+    def _calculate_julia(self,
+                         res_x: int = 600,
+                         res_y: int = 600,
+                         iterations: int = 200,
+                         x_range: tuple = (-3, 3),
+                         y_range: tuple = (-3, 3),
+                         z_max: float = 3) -> np.ndarray:
+        results = np.ones((res_x, res_y))
+        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
+            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+                z = complex(x, y)
+                i = 0
+                while i < iterations:
+                    z = self(z)
+                    if abs(z) > z_max:
+                        results[x_i, y_i] = i/iterations
+                        break
+                    i += 1
+
+        return results
+
+    def draw_julia(self,
+                   res_x: int = 600,
+                   res_y: int = 600,
+                   iterations: int = 200,
+                   x_range: tuple = (-3, 3),
+                   y_range: tuple = (-3, 3),
+                   z_max: float = 3) -> Image.Image:
+        results = self._calculate_julia(res_x, res_y, iterations, x_range, y_range, z_max)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         im.show()
         return im
