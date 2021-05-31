@@ -6,6 +6,20 @@ from matplotlib import cm
 import cmath
 
 
+def draw_from_array(array: np.ndarray, colormap: cm = cm.cubehelix_r) -> Image:
+    """
+    Draw an image from an array of values between 0 and 1.
+
+    Parameters
+    ----------
+    array: np.ndarray
+        The array to draw the image from.
+    colormap: cm
+        The colormap to use for the image.
+    """
+    return Image.fromarray(np.uint8(colormap(array)*255))
+
+
 class Map(ABC):
     """A mapping f: C -> C."""
 
@@ -110,7 +124,7 @@ class Map(ABC):
                                              x_range,
                                              y_range,
                                              z_max)
-        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
+        im = draw_from_array(results)
         im.show()
         return im
 
@@ -178,7 +192,7 @@ class Map(ABC):
                                         x_range,
                                         y_range,
                                         z_max)
-        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
+        im = draw_from_array(results)
         im.show()
         return im
 
