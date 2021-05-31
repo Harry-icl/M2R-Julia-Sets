@@ -30,7 +30,6 @@ class Map(ABC):
         """
         pass
 
-    @abstractmethod
     def derivative(self, z: complex) -> complex:
         """
         Return the derivative of the map at the given point.
@@ -288,3 +287,21 @@ class CubicNewtonMap(Map):
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z - self.cubic.derivative(z)/self.cubic(z)
+
+    def _calculate_mandelbrot(self,
+                              res_x: int = 600,
+                              res_y: int = 600,
+                              iterations: int = 200,
+                              x_range: tuple = (-3, 3),
+                              y_range: tuple = (-3, 3),
+                              z_max: float = 3):
+        raise NotImplementedError
+
+    def _calculate_julia(self,
+                         res_x: int = 600,
+                         res_y: int = 600,
+                         iterations: int = 200,
+                         x_range: tuple = (-3, 3),
+                         y_range: tuple = (-3, 3),
+                         z_max: float = 3):
+        raise NotImplementedError
