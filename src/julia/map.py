@@ -4,6 +4,9 @@ import numpy as np
 from PIL import Image
 from matplotlib import cm
 import cmath
+import multiprocessing as mp
+from functools import partial
+from numba import jit
 
 
 def draw_from_array(array: np.ndarray, colormap: cm = cm.cubehelix_r) -> Image:
@@ -67,7 +70,8 @@ class Map(ABC):
                               iterations: int = 200,
                               x_range: tuple = (-3, 3),
                               y_range: tuple = (-3, 3),
-                              z_max: float = 3) -> np.ndarray:
+                              z_max: float = 3,
+                              multiprocessing: bool = False) -> np.ndarray:
         """
         Calculate the escape time of given points as c values in the map.
 
@@ -94,7 +98,8 @@ class Map(ABC):
                         iterations: int = 200,
                         x_range: tuple = (-3, 3),
                         y_range: tuple = (-3, 3),
-                        z_max: float = 3) -> Image.Image:
+                        z_max: float = 3,
+                        multiprocessing: bool = False) -> Image.Image:
         """
         Draw the Mandelbrot set for this map.
 
@@ -123,9 +128,9 @@ class Map(ABC):
                                              iterations,
                                              x_range,
                                              y_range,
-                                             z_max)
+                                             z_max,
+                                             multiprocessing)
         im = draw_from_array(results)
-        im.show()
         return im
 
     @abstractmethod
@@ -135,7 +140,8 @@ class Map(ABC):
                          iterations: int = 200,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         z_max: float = 3) -> np.ndarray:
+                         z_max: float = 3,
+                         multiprocessing: bool = False) -> np.ndarray:
         """
         Calculate the escape time of given points as z values in the map.
 
@@ -162,7 +168,8 @@ class Map(ABC):
                    iterations: int = 200,
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
-                   z_max: float = 3) -> Image.Image:
+                   z_max: float = 3,
+                   multiprocessing: bool = False) -> Image.Image:
         """
         Draw the Julia set for this map with the current parameter values.
 
@@ -193,7 +200,6 @@ class Map(ABC):
                                         y_range,
                                         z_max)
         im = draw_from_array(results)
-        im.show()
         return im
 
 
@@ -223,39 +229,55 @@ class CubicMap(Map):
     def derivative(self, z: complex) -> complex:  # noqa D102
         return 3*z**2 - self.a
 
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
+        z1 = c1
+        z2 = c2
+        z1_diverge = False
+        z2_diverge = False
+        for i in range(iterations):
+            z1 = z1**3 - a*z1 + b if not z1_diverge else z1
+            z2 = z2**3 - a*z2 + b if not z2_diverge else z2
+            if abs(z1 - c1) > z_max:
+                z1_diverge = True
+            if abs(z2 - c2) > z_max:
+                z2_diverge = True
+            if z1_diverge and z2_diverge:
+                return i / iterations
+        else:
+            return 1
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_escape_time_julia(z, a, b, iterations, z_max):
+        for i in range(iterations):
+            z = z**3 - a*z + b
+            if abs(z) > z_max:
+                return i / iterations
+        else:
+            return 1
+
     def _calculate_mandelbrot(self,
                               res_x: int = 600,
                               res_y: int = 600,
                               iterations: int = 200,
                               x_range: tuple = (-3, 3),
                               y_range: tuple = (-3, 3),
-                              z_max: float = 3) -> np.ndarray:
-        results = np.ones((res_x, res_y))
+                              z_max: float = 3,
+                              multiprocessing: bool = False) -> np.ndarray:
         c1 = -cmath.sqrt(self.a/3)
         c2 = cmath.sqrt(self.a/3)
-        for x_i, x in enumerate(np.linspace(x_range[0],
-                                            x_range[1],
-                                            res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0],
-                                                y_range[1],
-                                                res_y)):
-                self.b = complex(x, y)
-                z1 = c1
-                z2 = c2
-                i = 0
-                z1_diverge = False
-                z2_diverge = False
-                while i < iterations:
-                    z1 = self(z1) if not z1_diverge else z1
-                    z2 = self(z2) if not z2_diverge else z2
-                    if abs(z1 - c1) > z_max:
-                        z1_diverge = True
-                    if abs(z2 - c2) > z_max:
-                        z2_diverge = True
-                    if z1_diverge and z2_diverge:
-                        results[x_i, y_i] = i/iterations
-                        break
-                    i += 1
+        num_list = [complex(x, y)
+                    for y in np.linspace(y_range[0], y_range[1], res_y)
+                    for x in np.linspace(x_range[0], x_range[1], res_x)]
+        if multiprocessing:
+            pool = mp.Pool(processes=mp.cpu_count())
+            result_list = pool.map(partial(self._calculate_escape_time_mandelbrot, a=self.a, c1=c1, c2=c2, iterations=iterations, z_max=z_max), num_list)
+            results = np.reshape(result_list, (res_y, res_x))
+        else:
+            result_list = map(partial(self._calculate_escape_time_mandelbrot, a=self.a, c1=c1, c2=c2, iterations=iterations, z_max=z_max), num_list)
+            results = np.reshape(np.fromiter(result_list, dtype=float), (res_y, res_x))
 
         return results
 
@@ -265,22 +287,18 @@ class CubicMap(Map):
                          iterations: int = 200,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         z_max: float = 3) -> np.ndarray:
-        results = np.ones((res_x, res_y))
-        for x_i, x in enumerate(np.linspace(x_range[0],
-                                            x_range[1],
-                                            res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0],
-                                                y_range[1],
-                                                res_y)):
-                z = complex(x, y)
-                i = 0
-                while i < iterations:
-                    z = self(z)
-                    if abs(z) > z_max:
-                        results[x_i, y_i] = i/iterations
-                        break
-                    i += 1
+                         z_max: float = 3,
+                         multiprocessing: bool = False) -> np.ndarray:
+        num_list = [complex(x, y)
+                    for y in np.linspace(y_range[0], y_range[1], res_y)
+                    for x in np.linspace(x_range[0], x_range[1], res_x)]
+        if multiprocessing:
+            pool = mp.Pool(processes=mp.cpu_count())
+            result_list = pool.map(partial(self._calculate_escape_time_julia, a=self.a, b=self.b, iterations=iterations, z_max=z_max), num_list)
+            results = np.reshape(result_list, (res_y, res_x))
+        else:
+            result_list = map(partial(self._calculate_escape_time_julia, a=self.a, b=self.b, iterations=iterations, z_max=z_max), num_list)
+            results = np.reshape(np.fromiter(result_list, dtype=float), (res_y, res_x))
 
         return results
 
