@@ -27,7 +27,7 @@ class Map(ABC):
     """A mapping f: C -> C."""
 
     @abstractmethod
-    def __init__(self) -> None:
+    def __init__(self):
         pass
 
     @abstractmethod
@@ -204,11 +204,11 @@ class Map(ABC):
 
 
 class CubicMap(Map):
-    """A polynomial mapping f: C -> C."""
+    """A cubic mapping f: C -> C."""
 
-    def __init__(self, a: float = None, b: float = None) -> None:
+    def __init__(self, a: float = None, b: float = None):
         """
-        Construct an instance of the PolynomialMap class.
+        Construct an instance of the CubicMap class.
 
         A complex cubic map p: C -> C of the form:
             p(z) = z^3 - az + b
@@ -326,7 +326,7 @@ class CubicMap(Map):
 class CubicNewtonMap(Map):
     """A Newton mapping f: C -> C, i.e. f(z) = z - g'(z)/g(z)."""
 
-    def __init__(self, cubic: CubicMap) -> None:
+    def __init__(self, cubic: CubicMap):
         """
         Construct an instance of the CubicNewtonMap class.
 
@@ -346,7 +346,8 @@ class CubicNewtonMap(Map):
                               iterations: int = 200,
                               x_range: tuple = (-3, 3),
                               y_range: tuple = (-3, 3),
-                              z_max: float = 3):
+                              z_max: float = 3,
+                              multiprocessing: bool = False):
         raise NotImplementedError
 
     def _calculate_julia(self,
@@ -355,5 +356,6 @@ class CubicNewtonMap(Map):
                          iterations: int = 200,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         z_max: float = 3):
+                         z_max: float = 3,
+                         multiprocessing: bool = False):
         raise NotImplementedError
