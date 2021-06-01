@@ -130,7 +130,7 @@ class Map(ABC):
                                              y_range,
                                              z_max,
                                              multiprocessing)
-        im = draw_from_array(results)
+        im = draw_from_array(results[::-1])
         return im
 
     @abstractmethod
@@ -198,8 +198,9 @@ class Map(ABC):
                                         iterations,
                                         x_range,
                                         y_range,
-                                        z_max)
-        im = draw_from_array(results)
+                                        z_max,
+                                        multiprocessing)
+        im = draw_from_array(results[::-1])
         return im
 
 
