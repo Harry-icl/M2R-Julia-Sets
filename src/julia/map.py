@@ -231,7 +231,7 @@ class CubicMap(Map):
 
     @staticmethod
     @jit(nopython=True)
-    def _calculate_escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
+    def _escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
         z1 = c1
         z2 = c2
         z1_diverge = False
@@ -247,10 +247,10 @@ class CubicMap(Map):
                 return i / iterations
         else:
             return 1
-    
+
     @staticmethod
     @jit(nopython=True)
-    def _calculate_escape_time_julia(z, a, b, iterations, z_max):
+    def _escape_time_julia(z, a, b, iterations, z_max):
         for i in range(iterations):
             z = z**3 - a*z + b
             if abs(z) > z_max:
@@ -273,11 +273,22 @@ class CubicMap(Map):
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
         if multiprocessing:
             pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._calculate_escape_time_mandelbrot, a=self.a, c1=c1, c2=c2, iterations=iterations, z_max=z_max), num_list)
+            result_list = pool.map(partial(self._escape_time_mandelbrot,
+                                           a=self.a,
+                                           c1=c1,
+                                           c2=c2,
+                                           iterations=iterations,
+                                           z_max=z_max), num_list)
             results = np.reshape(result_list, (res_y, res_x))
         else:
-            result_list = map(partial(self._calculate_escape_time_mandelbrot, a=self.a, c1=c1, c2=c2, iterations=iterations, z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float), (res_y, res_x))
+            result_list = map(partial(self._escape_time_mandelbrot,
+                                      a=self.a,
+                                      c1=c1,
+                                      c2=c2,
+                                      iterations=iterations,
+                                      z_max=z_max), num_list)
+            results = np.reshape(np.fromiter(result_list, dtype=float),
+                                 (res_y, res_x))
 
         return results
 
@@ -294,11 +305,20 @@ class CubicMap(Map):
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
         if multiprocessing:
             pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._calculate_escape_time_julia, a=self.a, b=self.b, iterations=iterations, z_max=z_max), num_list)
+            result_list = pool.map(partial(self._escape_time_julia,
+                                           a=self.a,
+                                           b=self.b,
+                                           iterations=iterations,
+                                           z_max=z_max), num_list)
             results = np.reshape(result_list, (res_y, res_x))
         else:
-            result_list = map(partial(self._calculate_escape_time_julia, a=self.a, b=self.b, iterations=iterations, z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float), (res_y, res_x))
+            result_list = map(partial(self._escape_time_julia,
+                                      a=self.a,
+                                      b=self.b,
+                                      iterations=iterations,
+                                      z_max=z_max), num_list)
+            results = np.reshape(np.fromiter(result_list, dtype=float),
+                                 (res_y, res_x))
 
         return results
 
