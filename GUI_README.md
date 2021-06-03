@@ -1,7 +1,10 @@
 # GUI for M2R-Julia-Sets
 The interactive gui plots the Mandelbrot set for the function $z^3 - az + b$, the plot shows the Mandelbrot set wrt $b$, and you can vary $a$ by clicking new points on the plot itself.
 
-To launch GUI, use the command `python -m julia`.
+## Usage
+First, install the package via the instructions in the [README](./README.md).
+
+Then, to run the GUI, use the command `python -m julia`.
 
 ## Controls
 * **Zooming** - To zoom in on an area of a plot, click and drag the area you'd like to zoom in on.

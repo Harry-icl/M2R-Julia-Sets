@@ -122,7 +122,7 @@ class QuadraticNewtonMap(Map):
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z - self.quadratic.derivative(z)/self.quadratic(z)
-    
+
     @staticmethod
     @jit(nopython=True)
     def _escape_time_mandelbrot(c,
@@ -186,4 +186,4 @@ class QuadraticNewtonMap(Map):
         num_list = [complex(x, y)
                     for y in np.linspace(y_range[0], y_range[1], res_y)
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
-        
+        pass
