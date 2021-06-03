@@ -77,7 +77,7 @@ if __name__ == "__main__":
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = True
             start_coords = (x, y)
-            cv2.waitKey(2)
+            cv2.waitKey(5)  # this needs to be here so that clicks are registered as such, otherwise a tiny drag will be detected.
 
         if event == cv2.EVENT_LBUTTONUP and not drag:
             btn_down = False
