@@ -118,7 +118,7 @@ class QuadraticMap(Map):
         ----------
         theta: float
             angle of the external ray
-        D: int 
+        D: int
             depth of the ray
         S: int
             sharpness of the ray
@@ -127,7 +127,6 @@ class QuadraticMap(Map):
         error: float
             error used for convergence of newton method
         """
-
         points = [R * cmath.exp(2 * np.pi * theta * 1j)]
 
         for i in range(1, D+1):
@@ -156,7 +155,7 @@ class QuadraticMap(Map):
         return points
 
     def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
-
+        """Draw external ray."""
         results = self.external_ray(theta, D, S, R, error)
         results = [[i.real, i.imag] for i in results]
         x = [x[0] for x in results]
@@ -196,10 +195,16 @@ class QuadraticMap(Map):
         n:
             precision of the Bottcher function
         """
-
         return math.log(abs(self.bottcher(c, n)))
 
-    def calculate_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), n=5, tol=10**(-6)):
+    def calculate_equipotential(self,
+                                equipotential,
+                                res_x=600,
+                                res_y=600,
+                                x_range=(-3, 3),
+                                y_range=(-3, 3),
+                                n=5,
+                                tol=10**(-6)):
         """
         Calculate equipotential curve.
 
@@ -215,17 +220,31 @@ class QuadraticMap(Map):
         results = np.ones((res_x, res_y))
 
         for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+            for y_i, y in enumerate(np.linspace(y_range[0],
+                                                y_range[1],
+                                                res_y)):
                 c = complex(x, y)
                 pot = self.potential(c, n)
                 # math.isclose(pot, equipotential, rel_tol=tol):
-                if pot in [equipotential - x_range[0]/res_x, equipotential + x_range[0]/res_x]:
+                if pot in [equipotential - x_range[0]/res_x,
+                           equipotential + x_range[0]/res_x]:
                     results[x_i, y_i] = 0
 
         return results
 
-    def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), n=5, tol=10**(-6)) -> Image.Image:
+    def draw_equipotential(self,
+                           equipotential,
+                           res_x=600,
+                           res_y=600,
+                           x_range=(-3, 3),
+                           y_range=(-3, 3),
+                           n=5,
+                           tol=10**(-6)) -> Image.Image:
+        """
+        Draw equipotential lines.
 
+        Add docstring please.
+        """
         results = self.calculate_equipotential(
             equipotential, res_x, res_y, x_range, y_range, n, tol)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
@@ -321,6 +340,11 @@ class QuadraticNewtonMap(Map):
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
                    line_weight: int = 1) -> Image.Image:
+        """
+        Draw a Julia set for the current map.
+
+        Docstring please
+        """
         im = Image.fromarray(255*np.ones((res_x, res_y)))
         if self.quadratic.c == 0:
             return im
@@ -385,6 +409,11 @@ class QuadraticNewtonMap(Map):
                   multiples: int = 12,
                   res_ray: int = 1024,
                   line_weight: int = 1) -> Image.Image:
+        """
+        Draw external rays.
+
+        Oskar - docstring please.
+        """
         im = self.draw_julia(res_x, res_y, x_range, y_range, line_weight)
         d = ImageDraw.Draw(im)
         for ray in self._calculate_rays(res_x,
@@ -422,6 +451,11 @@ class QuadraticNewtonMap(Map):
                     levels: int = 12,
                     res_eqpot: int = 1024,
                     line_weight: int = 1) -> Image.Image:
+        """
+        Draw an equipotential line.
+
+        Oskar - docstring please.
+        """
         im = Image.fromarray(255*np.ones((res_x, res_y)))
         d = ImageDraw.Draw(im)
         for eqpot in self._calculate_eqpots(res_x,

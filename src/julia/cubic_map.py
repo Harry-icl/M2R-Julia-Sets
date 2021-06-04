@@ -1,3 +1,4 @@
+"""Module containing map classes for cubic functions."""
 import cmath
 from functools import partial
 import numpy as np
@@ -126,7 +127,7 @@ class CubicMap(Map):
                                  (res_y, res_x))
 
         return results
-    
+
     def external_ray(self, theta, D=20, S=10, R=200, error=0.001):
         """
         Construct an array of points on the external ray of angle theta.
@@ -135,7 +136,7 @@ class CubicMap(Map):
         ----------
         theta: float
             angle of the external ray
-        D: int 
+        D: int
             depth of the ray
         S: int
             sharpness of the ray
@@ -144,35 +145,44 @@ class CubicMap(Map):
         error: float
             error used for convergence of newton method
         """
-
         points = [R * cmath.exp(2 * np.pi * theta * 1j)]
-        
+
         for i in range(1, D+1):
             for q in range(1, S+1):
-                
+
                 r_m = R ** (1 / (3 ** (i - 1 + q / S)))
-                t_m = r_m**(3**(i)) * cmath.exp(2 * np.pi * 1j * theta * 3**(i))
+                t_m = r_m**(3**(i)) * cmath.exp(2
+                                                * np.pi
+                                                * 1j
+                                                * theta
+                                                * 3**(i))
                 b_next = points[-1]
-                b_previous = 0   
+                b_previous = 0
 
                 while abs(b_previous - b_next) >= error:
                     C_k = b_next
                     D_k = [0, -self.a + 1]
                     for x in range(i):
-                        D_k.append(3 * D_k[-1] * C_k ** 2 - self.a * D_k[-2] + 1)
+                        D_k.append(3 * D_k[-1] * C_k ** 2
+                                   - self.a * D_k[-2] + 1)
                         C_k = C_k ** 3 - self.a * C_k + b_next
                     b_previous = b_next
                     b_next = b_previous - (C_k - t_m) / D_k[-1]
-                
+
                 points.append(b_next)
-        
+
         # filter to be in range [-2,2]
         points = filter(lambda x: abs(x.real) < 2 and abs(x.imag) < 2, points)
-        
-        return points
-    
-    def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
 
+        return points
+
+    def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
+        """
+        Draw an external ray on matplotlib.
+
+        Oskar - can you add some more description to this docstring, as well as
+        types for the parameters.
+        """
         results = self.external_ray(theta, D, S, R, error)
         results = [[i.real, i.imag] for i in results]
         x = [x[0] for x in results]

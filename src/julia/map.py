@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import cm
 from PIL import Image
 
+
 def draw_from_array(array: np.ndarray, colormap: cm = cm.cubehelix_r) -> Image:
     """
     Draw an image from an array of values between 0 and 1.
@@ -58,7 +59,6 @@ class Map(ABC):
         """
         pass
 
-    
     def _calculate_mandelbrot(self,
                               res_x: int = 600,
                               res_y: int = 600,
@@ -128,7 +128,6 @@ class Map(ABC):
         im = draw_from_array(results[::-1])
         return im
 
-    
     def _calculate_julia(self,
                          res_x: int = 600,
                          res_y: int = 600,
