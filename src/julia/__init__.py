@@ -1,1 +1,1 @@
-from .map import CubicMap, CubicNewtonMap  # noqa F401
+from .map import CubicMap, CubicNewtonMap, QuadraticMap  # noqa F401
