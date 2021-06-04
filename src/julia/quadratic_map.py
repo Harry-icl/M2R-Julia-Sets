@@ -6,7 +6,7 @@ from numba import jit
 import cmath
 import matplotlib.pyplot as plt
 import math
-from PIL import Image
+from PIL import Image, ImageDraw
 from matplotlib import cm
 
 from .map import Map
@@ -29,7 +29,7 @@ class QuadraticMap(Map):
         """
         self.c = c
 
-    def __call__(self, z: complex) -> complex: # noqa D102
+    def __call__(self, z: complex) -> complex:  # noqa D102
         return z**2 + self.c
 
     def derivative(self, z: complex) -> complex:  # noqa D102
@@ -129,14 +129,15 @@ class QuadraticMap(Map):
         """
 
         points = [R * cmath.exp(2 * np.pi * theta * 1j)]
-        
+
         for i in range(1, D+1):
             for q in range(1, S + 1):
-                
+
                 r_m = R ** (1 / (2 ** (i - 1 + q / S)))
-                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 2**(i))
+                t_m = r_m**(2**(i)) * cmath.exp(2 *
+                                                np.pi * 1j * theta * 2**(i))
                 c_next = points[-1]
-                c_previous = 0   
+                c_previous = 0
 
                 while abs(c_previous - c_next) >= error:
                     C_k = c_next
@@ -146,12 +147,12 @@ class QuadraticMap(Map):
                         C_k = C_k ** 2 + c_next
                     c_previous = c_next
                     c_next = c_previous - (C_k - t_m) / D_k
-                
+
                 points.append(c_next)
-        
+
         # filter to be in range [-2,2]
         points = filter(lambda x: abs(x.real) < 2 and abs(x.imag) < 2, points)
-        
+
         return points
 
     def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
@@ -162,7 +163,7 @@ class QuadraticMap(Map):
         y = [x[1] for x in results]
         plt.plot(x, y)
         plt.show()
-    
+
     def bottcher(self, c, n=5):
         """
         Find the Bottcher coordinate of point c.
@@ -183,7 +184,7 @@ class QuadraticMap(Map):
             result *= interim_result ** (1/(2**j))
         result = c * result
         return result
-    
+
     def potential(self, c, n=5):
         """
         Find the Bottcher potential of point c.
@@ -197,8 +198,8 @@ class QuadraticMap(Map):
         """
 
         return math.log(abs(self.bottcher(c, n)))
-    
-    def calculate_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3,3), n=5, tol=10**(-6)):
+
+    def calculate_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), n=5, tol=10**(-6)):
         """
         Calculate equipotential curve.
 
@@ -217,14 +218,16 @@ class QuadraticMap(Map):
             for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
                 c = complex(x, y)
                 pot = self.potential(c, n)
-                if pot in [equipotential - x_range[0]/res_x, equipotential + x_range[0]/res_x]: #math.isclose(pot, equipotential, rel_tol=tol):
+                # math.isclose(pot, equipotential, rel_tol=tol):
+                if pot in [equipotential - x_range[0]/res_x, equipotential + x_range[0]/res_x]:
                     results[x_i, y_i] = 0
-        
+
         return results
-    
+
     def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), n=5, tol=10**(-6)) -> Image.Image:
 
-        results = self.calculate_equipotential(equipotential, res_x, res_y, x_range, y_range,n, tol)
+        results = self.calculate_equipotential(
+            equipotential, res_x, res_y, x_range, y_range, n, tol)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         im.show()
         return im
@@ -311,3 +314,122 @@ class QuadraticNewtonMap(Map):
                     for y in np.linspace(y_range[0], y_range[1], res_y)
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
         pass
+
+    def draw_julia(self,
+                   res_x: int = 600,
+                   res_y: int = 600,
+                   x_range: tuple = (-3, 3),
+                   y_range: tuple = (-3, 3),
+                   line_weight: int = 1) -> Image.Image:
+        im = Image.fromarray(255*np.ones((res_x, res_y)))
+        if self.quadratic.c == 0:
+            return im
+        d = ImageDraw.Draw(im)
+        real = cmath.sqrt(self.quadratic.c).real
+        imag = cmath.sqrt(self.quadratic.c).imag
+        if abs(real) >= abs(imag):
+            d.line([0,
+                    round((x_range[0]*imag/real-y_range[1])
+                          / (y_range[0]-y_range[1])*(res_y-1)),
+                    res_x-1,
+                    round((x_range[1]*imag/real-y_range[1])
+                          / (y_range[0]-y_range[1])*(res_y-1))],
+                   fill=0,
+                   width=line_weight)
+        else:
+            d.line([round((y_range[1]*real/imag-x_range[0])
+                          / (x_range[1]-x_range[0])*(res_y-1)),
+                    0,
+                    round((y_range[0]*real/imag-x_range[0])
+                          / (x_range[1]-x_range[0])*(res_y-1)),
+                    res_y-1],
+                   fill=0,
+                   width=line_weight)
+        im.show()
+        return im
+
+    def _inv_bottcher(self, z: complex):
+        return 1j*cmath.sqrt(self.quadratic.c)*(z+1)/(z-1)
+
+    def _complex_to_pixel(self,
+                          z: complex,
+                          res_x: int = 600,
+                          res_y: int = 600,
+                          x_range: tuple = (-3, 3),
+                          y_range: tuple = (-3, 3)) -> tuple:
+        return (round((z.real-x_range[0])/(x_range[1]-x_range[0])*(res_x-1)),
+                round((z.imag-y_range[1])/(y_range[0]-y_range[1])*(res_y-1)))
+
+    def _calculate_rays(self,
+                        res_x: int = 600,
+                        res_y: int = 600,
+                        x_range: tuple = (-3, 3),
+                        y_range: tuple = (-3, 3),
+                        multiples: int = 12,
+                        res_ray: int = 1024):
+        return [[self._complex_to_pixel(
+            self._inv_bottcher(cmath.rect(1/np.cos(r), phi)),
+            res_x,
+            res_y,
+            x_range,
+            y_range
+        )
+            for r in np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
+            for phi in np.linspace(0, 2*np.pi, multiples+1)[:-1]]
+
+    def draw_rays(self,
+                  res_x: int = 600,
+                  res_y: int = 600,
+                  x_range: tuple = (-3, 3),
+                  y_range: tuple = (-3, 3),
+                  multiples: int = 12,
+                  res_ray: int = 1024,
+                  line_weight: int = 1) -> Image.Image:
+        im = self.draw_julia(res_x, res_y, x_range, y_range, line_weight)
+        d = ImageDraw.Draw(im)
+        for ray in self._calculate_rays(res_x,
+                                        res_y,
+                                        x_range,
+                                        y_range,
+                                        multiples,
+                                        res_ray):
+            d.line(ray, fill=0, width=line_weight, joint="curve")
+        im.show()
+        return im
+
+    def _calculate_eqpots(self,
+                          res_x: int = 600,
+                          res_y: int = 600,
+                          x_range: tuple = (-3, 3),
+                          y_range: tuple = (-3, 3),
+                          levels: int = 12,
+                          res_eqpot: int = 1024):
+        return [[self._complex_to_pixel(
+            self._inv_bottcher(cmath.rect(1/np.cos(r), phi)),
+            res_x,
+            res_y,
+            x_range,
+            y_range
+        )
+            for phi in np.linspace(0, 2*np.pi, res_eqpot+1)[:-1]]
+            for r in np.linspace(0, np.pi/2, levels+2)[1:-1]]
+
+    def draw_eqpots(self,
+                    res_x: int = 600,
+                    res_y: int = 600,
+                    x_range: tuple = (-3, 3),
+                    y_range: tuple = (-3, 3),
+                    levels: int = 12,
+                    res_eqpot: int = 1024,
+                    line_weight: int = 1) -> Image.Image:
+        im = Image.fromarray(255*np.ones((res_x, res_y)))
+        d = ImageDraw.Draw(im)
+        for eqpot in self._calculate_eqpots(res_x,
+                                            res_y,
+                                            x_range,
+                                            y_range,
+                                            levels,
+                                            res_eqpot):
+            d.line(eqpot, fill=0, width=line_weight, joint="curve")
+        im.show()
+        return im

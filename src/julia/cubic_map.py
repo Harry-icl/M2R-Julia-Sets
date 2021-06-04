@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
+from numba import jit
 
 from .map import Map
 
