@@ -7,6 +7,7 @@ import cmath
 import multiprocessing as mp
 from functools import partial
 from numba import jit
+import matplotlib.pyplot as plt
 
 
 def draw_from_array(array: np.ndarray, colormap: cm = cm.cubehelix_r) -> Image:
