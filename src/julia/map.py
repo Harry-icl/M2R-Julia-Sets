@@ -1,7 +1,7 @@
 """Module containing all of the classes for mappings."""
 from abc import ABC, abstractmethod
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from matplotlib import cm
 import cmath
 import multiprocessing as mp
@@ -379,7 +379,7 @@ class CubicMap(Map):
 
 
 class CubicNewtonMap(Map):
-    """A Newton mapping f: C -> C, i.e. f(z) = z - g'(z)/g(z)."""
+    """A Newton map f(z) = z - g'(z)/g(z) where g is cubic."""
 
     def __init__(self, cubic: CubicMap):
         """
