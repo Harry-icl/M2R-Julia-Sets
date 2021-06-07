@@ -5,6 +5,7 @@ import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from numba import jit
+from PIL import Image
 
 from .map import Map
 
@@ -30,20 +31,20 @@ class CubicMap(Map):
         self.b = b
 
         if a == b == 0:
-            self.roots = [0]
+            self.roots = np.array([complex(0)])
             return None
         elif a == 0:
-            gamma = (-b)**(1/3)
+            gamma = complex((-b)**(1/3))
         else:
-            gamma = (-b/2+cmath.sqrt(b**2/4+a**3/27))**(1/3)
-            print(gamma)
+            gamma = (-b/2+cmath.sqrt(b**2/4-a**3/27))**(1/3)
         omega = cmath.rect(1, 2*np.pi/3)
         omega_ = cmath.rect(1, -2*np.pi/3)
-        self.roots = [gamma - a/(3*gamma)]
-        if np.all(~np.isclose(gamma*omega - a/(3*gamma)*omega_, self.roots)):
-            self.roots.append(gamma*omega - a/(3*gamma)*omega_)
-        if np.all(~np.isclose(gamma*omega_ - a/(3*gamma)*omega, self.roots)):
-            self.roots.append(gamma*omega_ - a/(3*gamma)*omega)
+        self.roots = [gamma + a/(3*gamma)]
+        if np.all(~np.isclose(gamma*omega + a/(3*gamma)*omega_, self.roots)):
+            self.roots.append(gamma*omega + a/(3*gamma)*omega_)
+        if np.all(~np.isclose(gamma*omega_ + a/(3*gamma)*omega, self.roots)):
+            self.roots.append(gamma*omega_ + a/(3*gamma)*omega)
+        self.roots = np.array(self.roots)
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z**3 - self.a*z + self.b
@@ -234,12 +235,94 @@ class CubicNewtonMap(Map):
                               multiprocessing: bool = False):
         raise NotImplementedError
 
+    @ staticmethod
+    @ jit(nopython=True)
+    def _conv_time_julia(z, a, b, roots, iterations, tol):
+        result = [0, 0, 0]
+        for i in range(iterations):
+            z -= (z**3 - a*z + b)/(3*z**2 - a)
+            for j, r in enumerate(roots):
+                if abs(z-r) < tol:
+                    result[j] = 255*(1-i/iterations)
+                    return result
+        return result
+
     def _calculate_julia(self,
                          res_x: int = 600,
                          res_y: int = 600,
                          iterations: int = 200,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         z_max: float = 3,
-                         multiprocessing: bool = False):
-        raise NotImplementedError
+                         tol: float = 1e-12,
+                         multiprocessing: bool = False) -> np.ndarray:
+        num_list = [complex(x, y)
+                    for y in np.linspace(y_range[0], y_range[1], res_y)
+                    for x in np.linspace(x_range[0], x_range[1], res_x)]
+        for i, r in enumerate(self.cubic.roots):
+            for r_ in self.cubic.roots[i+1:]:
+                tol = min(tol, abs(r-r_)/3)
+        if multiprocessing:
+            pool = mp.Pool(processes=mp.cpu_count())
+            result_list = pool.map(partial(self._conv_time_julia,
+                                           a=self.cubic.a,
+                                           b=self.cubic.b,
+                                           roots=self.cubic.roots,
+                                           iterations=iterations,
+                                           tol=tol), num_list)
+            results = np.reshape(np.array(list(result_list), dtype=np.uint8),
+                                 (res_y, res_x, 3))
+        else:
+            result_list = map(partial(self._conv_time_julia,
+                                      a=self.cubic.a,
+                                      b=self.cubic.b,
+                                      roots=self.cubic.roots,
+                                      iterations=iterations,
+                                      tol=tol), num_list)
+            results = np.reshape(np.array(list(result_list), dtype=np.uint8),
+                                 (res_y, res_x, 3))
+        return results
+
+    def draw_julia(self,
+                   res_x: int = 600,
+                   res_y: int = 600,
+                   iterations: int = 32,
+                   x_range: tuple = (-3, 3),
+                   y_range: tuple = (-3, 3),
+                   tol: float = 1e-12,
+                   multiprocessing: bool = False) -> Image.Image:
+        """
+        Draw the Julia set for this map with the current parameter values.
+
+        Parameters
+        ----------
+        res_x: int
+            The horizontal resolution of the image.
+        res_y: int
+            The vertical resolution of the image.
+        iterations: int
+            The maximum number of times to apply the map iteratively.
+        x_range: (float, float)
+            The range of x values to consider.
+        y_range: (float, float)
+            The range of y values to consider.
+        tol: float
+            The minimum distance before considering the orbit to have
+            converged.
+        multiprocessing: bool
+            Determines whether to use multiprocessing.
+
+
+        Returns
+        -------
+        im: Image.Image
+            The image of the Mandelbrot set as a Pillow image object.
+        """
+        results = self._calculate_julia(res_x,
+                                        res_y,
+                                        iterations,
+                                        x_range,
+                                        y_range,
+                                        tol,
+                                        multiprocessing)
+        im = Image.fromarray(results[::-1], 'RGB')
+        return im
