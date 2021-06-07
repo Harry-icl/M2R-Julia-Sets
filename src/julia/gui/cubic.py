@@ -1,15 +1,16 @@
 """Interactive GUI function for displaying Mandelbrot and Julia sets."""
 
 
-def main():
+def main(multiprocessing: bool = False):
     """Run the interactive GUI."""
     import cv2
     import numpy as np
     from math import sqrt
 
-    from .tools import to_complex, title_generator, title_generator_julia
+    from .tools import to_complex, from_complex, title_generator, \
+        title_generator_julia
     from .constants import X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, \
-        RESOLUTION, ITERATIONS, REC_COLOR
+        RESOLUTION, ITERATIONS, REC_COLOR, RAY_COLOR
     from julia import CubicMap
 
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
@@ -25,6 +26,7 @@ def main():
     y_res_m = RESOLUTION
     x_res_j = RESOLUTION
     y_res_j = RESOLUTION
+    external_rays = False
 
     def click_event_mandel(event, x, y, flags, params):
         """Process mouse interaction via cv2."""
@@ -34,7 +36,7 @@ def main():
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = True
             start_coords = (x, y)
-            cv2.waitKey(5)  # this needs to be here so that clicks are \
+            cv2.waitKey(10)  # this needs to be here so that clicks are \
             # registered as such, otherwise a tiny drag will be detected.
 
         elif event == cv2.EVENT_LBUTTONUP and not drag:
@@ -48,13 +50,26 @@ def main():
                                                        iterations=ITERATIONS,
                                                        x_range=x_range_m,
                                                        y_range=y_range_m,
-                                                       multiprocessing=True)
+                                                       multiprocessing=multiprocessing)  # noqa E501
+            pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
+                                                 res_y=y_res_j,
+                                                 iterations=ITERATIONS,
+                                                 x_range=x_range_j,
+                                                 y_range=y_range_j,
+                                                 multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+            open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('mandel', open_cv_image_mandel)
+            cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('mandel',
                                title_generator(cubic_map.a,
                                                x_range_m,
                                                y_range_m))
+            cv2.setWindowTitle('julia',
+                               title_generator_julia(cubic_map.a,
+                                                     cubic_map.b,
+                                                     x_range_m,
+                                                     y_range_m))
 
         elif event == cv2.EVENT_LBUTTONUP and drag:
             btn_down = False
@@ -79,7 +94,7 @@ def main():
                                                        iterations=ITERATIONS,
                                                        x_range=x_range_m,
                                                        y_range=y_range_m,
-                                                       multiprocessing=True)
+                                                       multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
             cv2.imshow('mandel', open_cv_image_mandel)
             cv2.setWindowTitle('mandel',
@@ -107,7 +122,7 @@ def main():
                                                  iterations=ITERATIONS,
                                                  x_range=x_range_j,
                                                  y_range=y_range_j,
-                                                 multiprocessing=True)
+                                                 multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
@@ -138,7 +153,7 @@ def main():
                                                  iterations=ITERATIONS,
                                                  x_range=x_range_j,
                                                  y_range=y_range_j,
-                                                 multiprocessing=True)
+                                                 multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
@@ -169,7 +184,7 @@ def main():
                                                  iterations=ITERATIONS,
                                                  x_range=x_range_j,
                                                  y_range=y_range_j,
-                                                 multiprocessing=True)
+                                                 multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
@@ -193,7 +208,7 @@ def main():
                                                iterations=ITERATIONS,
                                                x_range=x_range_m,
                                                y_range=y_range_m,
-                                               multiprocessing=True)
+                                               multiprocessing=multiprocessing)
     open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
     cubic_map.b = 0
     pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
@@ -201,7 +216,7 @@ def main():
                                          iterations=ITERATIONS,
                                          x_range=x_range_j,
                                          y_range=y_range_j,
-                                         multiprocessing=True)
+                                         multiprocessing=multiprocessing)
     open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
     cv2.imshow('mandel', open_cv_image_mandel)
     cv2.imshow('julia', open_cv_image_julia)
@@ -234,7 +249,7 @@ def main():
                                                        iterations=ITERATIONS,
                                                        x_range=x_range_m,
                                                        y_range=y_range_m,
-                                                       multiprocessing=True)
+                                                       multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
             cv2.imshow('mandel', open_cv_image_mandel)
             cv2.setWindowTitle('mandel',
@@ -252,7 +267,7 @@ def main():
                                                  iterations=ITERATIONS,
                                                  x_range=x_range_j,
                                                  y_range=y_range_j,
-                                                 multiprocessing=True)
+                                                 multiprocessing=multiprocessing)  # noqa E501
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
@@ -260,3 +275,22 @@ def main():
                                                      cubic_map.b,
                                                      x_range_j,
                                                      y_range_j))
+
+        elif key == ord('e'):
+            if not external_rays:
+                external_ray_open_cv_image = open_cv_image_julia.copy()
+                zero_ray = [from_complex(z)
+                            for z in cubic_map.external_ray(0)]
+                pi_3_ray = [from_complex(z)
+                            for z in cubic_map.external_ray(1/6)]
+                pi_ray = [from_complex(z)
+                          for z in cubic_map.external_ray(1/2)]
+                pairs = zip(zero_ray[:-1] + pi_3_ray[:-1] + pi_ray[:-1],
+                            zero_ray[1:] + pi_3_ray[1:] + pi_ray[1:])
+
+                for pair in pairs:
+                    cv2.line(external_ray_open_cv_image,
+                             pair[0], pair[1],
+                             color=RAY_COLOR, thickness=1)
+
+                cv2.imshow('julia', external_ray_open_cv_image)
