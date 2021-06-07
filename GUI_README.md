@@ -4,7 +4,7 @@ The interactive gui plots the Mandelbrot set for the function z^3 - az + b, the 
 ## Usage
 First, install the package via the instructions in the [README](./README.md).
 
-Then, to run the GUI, use the command `python -m julia`. Note that your PC may not automatically focus on the window, you may have to click on the window in your taskbar.
+Then, to run the GUI, use the command `python -m julia`.
 
 ## Controls
 * **Zooming** - To zoom in on an area of a plot, click and drag the area you'd like to zoom in on.

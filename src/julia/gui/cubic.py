@@ -216,6 +216,8 @@ def main():
     cv2.moveWindow('julia', RESOLUTION, 0)
     cv2.setMouseCallback('mandel', click_event_mandel)
     cv2.setMouseCallback('julia', click_event_julia)
+    cv2.setWindowProperty('mandel', cv2.WND_PROP_TOPMOST, 1)
+    cv2.setWindowProperty('julia', cv2.WND_PROP_TOPMOST, 1)
 
     while True:
         key = cv2.waitKey(0)
