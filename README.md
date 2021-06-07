@@ -1,6 +1,6 @@
 # M2R-Julia-Sets
-A package for drawing Multibrot and Julia sets.
-![The Multibrot set for the function z^3 + b](threebrot.png)
+A package for drawing Mandelbrot and Julia sets.
+![The Mandelbrot set for the function z^3 + b](threebrot.png)
 ## Installation
 1. Clone the repository to your local machine using the command
 `git clone https://github.com/Harry-icl/M2R-Julia-Sets`
