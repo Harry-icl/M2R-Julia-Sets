@@ -1,4 +1,4 @@
-"""Interactive GUI function for displaying Mandelbrot sets."""
+"""Interactive GUI function for displaying Mandelbrot and Julia sets."""
 
 
 def main():
@@ -7,24 +7,29 @@ def main():
     import numpy as np
     from math import sqrt
 
-    from .tools import to_complex, title_generator
-    from .constants import X_RANGE0, Y_RANGE0, RESOLUTION, ITERATIONS, \
-        REC_COLOR
+    from .tools import to_complex, title_generator, title_generator_julia
+    from .constants import X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, \
+        RESOLUTION, ITERATIONS, REC_COLOR
     from julia import CubicMap
 
-    global btn_down, drag, x_range, y_range, start_coords, open_cv_image, \
-        x_res, y_res
+    global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
+        start_coords, open_cv_image_mandel, open_cv_image_julia, \
+        x_res_m, y_res_m, x_res_j, y_res_j
 
     btn_down, drag = False, False
-    x_range, y_range = X_RANGE0, Y_RANGE0
-    start_coords = None
-    x_res = RESOLUTION
-    y_res = RESOLUTION
+    x_range_m, y_range_m = X_RANGEM0, Y_RANGEM0
+    x_range_j, y_range_j = X_RANGEJ0, Y_RANGEJ0
 
-    def click_event(event, x, y, flags, params):
+    start_coords = None
+    x_res_m = RESOLUTION
+    y_res_m = RESOLUTION
+    x_res_j = RESOLUTION
+    y_res_j = RESOLUTION
+
+    def click_event_mandel(event, x, y, flags, params):
         """Process mouse interaction via cv2."""
-        global btn_down, drag, x_range, y_range, start_coords, open_cv_image, \
-            x_res, y_res
+        global btn_down, drag, x_range_m, y_range_m, start_coords, \
+            open_cv_image_mandel, x_res_m, y_res_m
 
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = True
@@ -32,94 +37,224 @@ def main():
             cv2.waitKey(5)  # this needs to be here so that clicks are \
             # registered as such, otherwise a tiny drag will be detected.
 
-        if event == cv2.EVENT_LBUTTONUP and not drag:
+        elif event == cv2.EVENT_LBUTTONUP and not drag:
             btn_down = False
             cubic_map.a = to_complex(*start_coords,
-                                     x_range, y_range,
-                                     x_res, y_res)
+                                     x_range_m, y_range_m,
+                                     x_res_m, y_res_m)
             print(f"Recalculating with {cubic_map.a} as a...")
-            pil_img = cubic_map.draw_mandelbrot(res_x=x_res,
-                                                res_y=y_res,
-                                                iterations=ITERATIONS,
-                                                x_range=x_range,
-                                                y_range=y_range,
-                                                multiprocessing=True)
-            open_cv_image = np.array(pil_img.convert('RGB'))
-            cv2.imshow('M2R-Julia-Sets', open_cv_image)
-            cv2.setWindowTitle('M2R-Julia-Sets',
-                               title_generator(cubic_map.a, x_range, y_range))
+            pil_img_mandel = cubic_map.draw_mandelbrot(res_x=x_res_m,
+                                                       res_y=y_res_m,
+                                                       iterations=ITERATIONS,
+                                                       x_range=x_range_m,
+                                                       y_range=y_range_m,
+                                                       multiprocessing=True)
+            open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+            cv2.imshow('mandel', open_cv_image_mandel)
+            cv2.setWindowTitle('mandel',
+                               title_generator(cubic_map.a,
+                                               x_range_m,
+                                               y_range_m))
 
-        if event == cv2.EVENT_LBUTTONUP and drag:
+        elif event == cv2.EVENT_LBUTTONUP and drag:
             btn_down = False
             drag = False
             start_num = to_complex(*start_coords,
-                                   x_range, y_range,
-                                   x_res, y_res)
-            end_num = to_complex(x, y, x_range, y_range, x_res, y_res)
-            x_range = (min(start_num.real, end_num.real),
-                       max(start_num.real, end_num.real))
-            y_range = (min(start_num.imag, end_num.imag),
-                       max(start_num.imag, end_num.imag))
-            print(f"Recalculating in area x: {x_range}, y: {y_range}...")
-            ratio = ((x_range[1] - x_range[0])
-                     / (y_range[1] - y_range[0])
-                     if y_range[0] != y_range[1]
+                                   x_range_m, y_range_m,
+                                   x_res_m, y_res_m)
+            end_num = to_complex(x, y, x_range_m, y_range_m, x_res_m, y_res_m)
+            x_range_m = (min(start_num.real, end_num.real),
+                         max(start_num.real, end_num.real))
+            y_range_m = (min(start_num.imag, end_num.imag),
+                         max(start_num.imag, end_num.imag))
+            print(f"Recalculating in area x: {x_range_m}, y: {y_range_m}...")
+            ratio = ((x_range_m[1] - x_range_m[0])
+                     / (y_range_m[1] - y_range_m[0])
+                     if y_range_m[0] != y_range_m[1]
                      else 1)
-            x_res = int(RESOLUTION*sqrt(ratio))
-            y_res = int(RESOLUTION/sqrt(ratio))
-            pil_img = cubic_map.draw_mandelbrot(res_x=x_res,
-                                                res_y=y_res,
-                                                iterations=ITERATIONS,
-                                                x_range=x_range,
-                                                y_range=y_range,
-                                                multiprocessing=True)
-            open_cv_image = np.array(pil_img.convert('RGB'))
-            cv2.imshow('M2R-Julia-Sets', open_cv_image)
-            cv2.setWindowTitle('M2R-Julia-Sets',
-                               title_generator(cubic_map.a, x_range, y_range))
+            x_res_m = int(RESOLUTION*sqrt(ratio))
+            y_res_m = int(RESOLUTION/sqrt(ratio))
+            pil_img_mandel = cubic_map.draw_mandelbrot(res_x=x_res_m,
+                                                       res_y=y_res_m,
+                                                       iterations=ITERATIONS,
+                                                       x_range=x_range_m,
+                                                       y_range=y_range_m,
+                                                       multiprocessing=True)
+            open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+            cv2.imshow('mandel', open_cv_image_mandel)
+            cv2.setWindowTitle('mandel',
+                               title_generator(cubic_map.a,
+                                               x_range_m,
+                                               y_range_m))
 
-        if event == cv2.EVENT_MOUSEMOVE and btn_down:
+        elif event == cv2.EVENT_MOUSEMOVE and btn_down:
             drag = True
-            rectangle_open_cv_image = open_cv_image.copy()
-            cv2.rectangle(rectangle_open_cv_image,
+            rectangle_open_cv_image_mandel = open_cv_image_mandel.copy()
+            cv2.rectangle(rectangle_open_cv_image_mandel,
                           pt1=start_coords,
                           pt2=(x, y),
                           color=REC_COLOR,
                           thickness=2)
-            cv2.imshow('M2R-Julia-Sets', rectangle_open_cv_image)
+            cv2.imshow('mandel', rectangle_open_cv_image_mandel)
+
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            cubic_map.b = to_complex(x, y,
+                                     x_range_m, y_range_m,
+                                     x_res_m, y_res_m)
+            print(f"Recalculating julia set with {cubic_map.b} as b...")
+            pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
+                                                 res_y=y_res_j,
+                                                 iterations=ITERATIONS,
+                                                 x_range=x_range_j,
+                                                 y_range=y_range_j,
+                                                 multiprocessing=True)
+            open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
+            cv2.imshow('julia', open_cv_image_julia)
+            cv2.setWindowTitle('julia',
+                               title_generator_julia(cubic_map.a,
+                                                     cubic_map.b,
+                                                     x_range_j,
+                                                     y_range_j))
+
+    def click_event_julia(event, x, y, flags, params):
+        """Process mouse interaction in julia set window."""
+        global btn_down, drag, x_range_j, y_range_j, start_coords, \
+            open_cv_image_julia, x_res_j, y_res_j
+
+        if event == cv2.EVENT_LBUTTONDOWN:
+            btn_down = True
+            start_coords = (x, y)
+            cv2.waitKey(5)  # this needs to be here so that clicks are \
+            # registered as such, otherwise a tiny drag will be detected.
+
+        elif event == cv2.EVENT_LBUTTONUP and not drag:
+            btn_down = False
+            cubic_map.a = to_complex(*start_coords,
+                                     x_range_j, y_range_j,
+                                     x_res_j, y_res_j)
+            print(f"Recalculating with {cubic_map.a} as a...")
+            pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
+                                                 res_y=y_res_j,
+                                                 iterations=ITERATIONS,
+                                                 x_range=x_range_j,
+                                                 y_range=y_range_j,
+                                                 multiprocessing=True)
+            open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
+            cv2.imshow('julia', open_cv_image_julia)
+            cv2.setWindowTitle('julia',
+                               title_generator(cubic_map.a,
+                                               x_range_j,
+                                               y_range_j))
+
+        elif event == cv2.EVENT_LBUTTONUP and drag:
+            btn_down = False
+            drag = False
+            start_num = to_complex(*start_coords,
+                                   x_range_j, y_range_j,
+                                   x_res_j, y_res_j)
+            end_num = to_complex(x, y, x_range_j, y_range_j, x_res_j, y_res_j)
+            x_range_j = (min(start_num.real, end_num.real),
+                         max(start_num.real, end_num.real))
+            y_range_j = (min(start_num.imag, end_num.imag),
+                         max(start_num.imag, end_num.imag))
+            print(f"Recalculating in area x: {x_range_j}, y: {y_range_j}...")
+            ratio = ((x_range_j[1] - x_range_j[0])
+                     / (y_range_j[1] - y_range_j[0])
+                     if y_range_j[0] != y_range_j[1]
+                     else 1)
+            x_res_j = int(RESOLUTION*sqrt(ratio))
+            y_res_j = int(RESOLUTION/sqrt(ratio))
+            pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
+                                                 res_y=y_res_j,
+                                                 iterations=ITERATIONS,
+                                                 x_range=x_range_j,
+                                                 y_range=y_range_j,
+                                                 multiprocessing=True)
+            open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
+            cv2.imshow('julia', open_cv_image_julia)
+            cv2.setWindowTitle('julia',
+                               title_generator(cubic_map.a,
+                                               x_range_j,
+                                               y_range_j))
+
+        elif event == cv2.EVENT_MOUSEMOVE and btn_down:
+            drag = True
+            rectangle_open_cv_image_julia = open_cv_image_julia.copy()
+            cv2.rectangle(rectangle_open_cv_image_julia,
+                          pt1=start_coords,
+                          pt2=(x, y),
+                          color=REC_COLOR,
+                          thickness=2)
+            cv2.imshow('julia', rectangle_open_cv_image_julia)
 
     cubic_map = CubicMap(a=0)
-    pil_img = cubic_map.draw_mandelbrot(res_x=x_res,
-                                        res_y=y_res,
-                                        iterations=ITERATIONS,
-                                        x_range=x_range,
-                                        y_range=y_range,
-                                        multiprocessing=True)
-    open_cv_image = np.array(pil_img.convert('RGB'))
-    cv2.imshow('M2R-Julia-Sets', open_cv_image)
-    cv2.setWindowTitle('M2R-Julia-Sets',
-                       title_generator(cubic_map.a, x_range, y_range))
-    cv2.setMouseCallback('M2R-Julia-Sets', click_event)
+    pil_img_mandel = cubic_map.draw_mandelbrot(res_x=x_res_m,
+                                               res_y=y_res_m,
+                                               iterations=ITERATIONS,
+                                               x_range=x_range_m,
+                                               y_range=y_range_m,
+                                               multiprocessing=True)
+    open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+    cubic_map.b = 0
+    pil_img_julia = cubic_map.draw_julia(res_x=x_res_j,
+                                         res_y=y_res_j,
+                                         iterations=ITERATIONS,
+                                         x_range=x_range_j,
+                                         y_range=y_range_j,
+                                         multiprocessing=True)
+    open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
+    cv2.imshow('mandel', open_cv_image_mandel)
+    cv2.imshow('julia', open_cv_image_julia)
+    cv2.setWindowTitle('mandel',
+                       title_generator(cubic_map.a, x_range_m, y_range_m))
+    cv2.setWindowTitle('julia',
+                       title_generator_julia(cubic_map.a,
+                                             cubic_map.b,
+                                             x_range_j,
+                                             y_range_j))
+    cv2.moveWindow('mandel', 0, 0)
+    cv2.moveWindow('julia', RESOLUTION, 0)
+    cv2.setMouseCallback('mandel', click_event_mandel)
+    cv2.setMouseCallback('julia', click_event_julia)
 
     while True:
         key = cv2.waitKey(0)
         if key == ord('q'):
             cv2.destroyAllWindows()
             break
-        elif key == ord('r'):
-            x_res = RESOLUTION
-            y_res = RESOLUTION
-            x_range = X_RANGE0
-            y_range = Y_RANGE0
-            pil_img = cubic_map.draw_mandelbrot(res_x=x_res,
-                                                res_y=y_res,
-                                                iterations=ITERATIONS,
-                                                x_range=x_range,
-                                                y_range=y_range,
-                                                multiprocessing=True)
-            open_cv_image = np.array(pil_img.convert('RGB'))
-            cv2.imshow('M2R-Julia-Sets', open_cv_image)
-            cv2.setWindowTitle('M2R-Julia-Sets',
+        elif key == ord('m'):
+            x_res_m = RESOLUTION
+            y_res_m = RESOLUTION
+            x_range_m = X_RANGEM0
+            y_range_m = Y_RANGEM0
+            pil_img_mandel = cubic_map.draw_mandelbrot(res_x=x_res_m,
+                                                       res_y=y_res_m,
+                                                       iterations=ITERATIONS,
+                                                       x_range=x_range_m,
+                                                       y_range=y_range_m,
+                                                       multiprocessing=True)
+            open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+            cv2.imshow('mandel', open_cv_image_mandel)
+            cv2.setWindowTitle('mandel',
                                title_generator(cubic_map.a,
-                                               x_range,
-                                               y_range))
+                                               x_range_m,
+                                               y_range_m))
+
+        elif key == ord('j'):
+            x_res_j = RESOLUTION
+            y_res_j = RESOLUTION
+            x_range_j = X_RANGEJ0
+            y_range_j = Y_RANGEJ0
+            pil_img_julia = cubic_map.draw_julia(res_x=x_res_m,
+                                                 res_y=y_res_m,
+                                                 iterations=ITERATIONS,
+                                                 x_range=x_range_j,
+                                                 y_range=y_range_j,
+                                                 multiprocessing=True)
+            open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
+            cv2.imshow('julia', open_cv_image_julia)
+            cv2.setWindowTitle('julia',
+                               title_generator_julia(cubic_map.a,
+                                                     cubic_map.b,
+                                                     x_range_j,
+                                                     y_range_j))

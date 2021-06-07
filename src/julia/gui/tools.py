@@ -11,6 +11,14 @@ def to_complex(x, y, x_range, y_range, x_res, y_res):
         The x coordinate.
     y: int
         The y coordinate.
+    x_range: (float, float)
+        The range of x values in the window.
+    y_range: (float, float)
+        The range of y values in the window.
+    x_res: float
+        The horizontal resolution of the window.
+    y_res: float
+        The vertical resolution of the window.
 
     Returns
     -------
@@ -52,4 +60,41 @@ def title_generator(a, x_range, y_range):
     top_right = (f"{round(x_range[1], 3)} + {round(y_range[1], 3)}i"
                  if y_range[1] > 0
                  else f"{round(x_range[1], 3)} {round(y_range[1], 3)}i")
-    return f"{func_name}, ({bottom_left}, {top_right})"
+    return f"Mandelbrot set of {func_name}, ({bottom_left}, {top_right})"
+
+
+def title_generator_julia(a, b, x_range, y_range):
+    """
+    Generate a window title for GUI for the Julia set.
+
+    Parameters
+    ----------
+    a: complex
+        The a parameter in the cubic.
+    b: complex
+        The b parameter in the cubic.
+    x_range: tuple
+        The range of x values displayed.
+    y_range: tuple
+        The range of y values displayed.
+
+    Returns
+    -------
+    title: str
+        The window title.
+    """
+    a_repr = (f"({round(a.real, 3)} + {round(a.imag, 3)}i)"
+              if a.imag > 0
+              else f"({round(a.real, 3)} {round(a.imag, 3)}i)")
+    b_repr = (f"({round(b.real, 3)} + {round(b.imag, 3)}i)"
+              if b.imag > 0
+              else f"({round(b.real, 3)} {round(b.imag, 3)}i)")
+
+    func_name = f"z^3 - {a_repr}z + {b_repr}"
+    bottom_left = (f"{round(x_range[0], 3)} + {round(y_range[0], 3)}i"
+                   if y_range[0] > 0
+                   else f"{round(x_range[0], 3)} {round(y_range[0], 3)}i")
+    top_right = (f"{round(x_range[1], 3)} + {round(y_range[1], 3)}i"
+                 if y_range[1] > 0
+                 else f"{round(x_range[1], 3)} {round(y_range[1], 3)}i")
+    return f"Julia set of {func_name}, ({bottom_left}, {top_right})"
