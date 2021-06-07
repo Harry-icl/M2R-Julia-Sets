@@ -352,23 +352,23 @@ class QuadraticNewtonMap(Map):
         real = cmath.sqrt(self.quadratic.c).real
         imag = cmath.sqrt(self.quadratic.c).imag
         if abs(real) >= abs(imag):
-            d.line([0,
-                    round((x_range[0]*imag/real-y_range[1])
-                          / (y_range[0]-y_range[1])*(res_y-1)),
-                    res_x-1,
-                    round((x_range[1]*imag/real-y_range[1])
-                          / (y_range[0]-y_range[1])*(res_y-1))],
-                   fill=0,
-                   width=line_weight)
+            d.line(
+                [self._complex_to_pixel(x_range[0]+x_range[0]*imag/real*1j,
+                                        res_x, res_y, x_range, y_range),
+                 self._complex_to_pixel(x_range[1]+x_range[1]*imag/real*1j,
+                                        res_x, res_y, x_range, y_range)],
+                fill=0,
+                width=line_weight
+            )
         else:
-            d.line([round((y_range[1]*real/imag-x_range[0])
-                          / (x_range[1]-x_range[0])*(res_y-1)),
-                    0,
-                    round((y_range[0]*real/imag-x_range[0])
-                          / (x_range[1]-x_range[0])*(res_y-1)),
-                    res_y-1],
-                   fill=0,
-                   width=line_weight)
+            d.line(
+                [self._complex_to_pixel(y_range[0]*real/imag+y_range[0]*1j,
+                                        res_x, res_y, x_range, y_range),
+                 self._complex_to_pixel(y_range[1]*real/imag+y_range[1]*1j,
+                                        res_x, res_y, x_range, y_range)],
+                fill=0,
+                width=line_weight
+            )
         im.show()
         return im
 

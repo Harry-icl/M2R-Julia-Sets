@@ -12,7 +12,7 @@ from .map import Map
 class CubicMap(Map):
     """A cubic mapping f: C -> C."""
 
-    def __init__(self, a: float = None, b: float = None):
+    def __init__(self, a: float = 0, b: float = 0):
         """
         Construct an instance of the CubicMap class.
 
@@ -29,14 +29,30 @@ class CubicMap(Map):
         self.a = a
         self.b = b
 
+        if a == b == 0:
+            self.roots = [0]
+            return None
+        elif a == 0:
+            gamma = (-b)**(1/3)
+        else:
+            gamma = (-b/2+cmath.sqrt(b**2/4+a**3/27))**(1/3)
+            print(gamma)
+        omega = cmath.rect(1, 2*np.pi/3)
+        omega_ = cmath.rect(1, -2*np.pi/3)
+        self.roots = [gamma - a/(3*gamma)]
+        if np.all(~np.isclose(gamma*omega - a/(3*gamma)*omega_, self.roots)):
+            self.roots.append(gamma*omega - a/(3*gamma)*omega_)
+        if np.all(~np.isclose(gamma*omega_ - a/(3*gamma)*omega, self.roots)):
+            self.roots.append(gamma*omega_ - a/(3*gamma)*omega)
+
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z**3 - self.a*z + self.b
 
     def derivative(self, z: complex) -> complex:  # noqa D102
         return 3*z**2 - self.a
 
-    @staticmethod
-    @jit(nopython=True)
+    @ staticmethod
+    @ jit(nopython=True)
     def _escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
         z1 = c1
         z2 = c2
@@ -54,8 +70,8 @@ class CubicMap(Map):
         else:
             return 1
 
-    @staticmethod
-    @jit(nopython=True)
+    @ staticmethod
+    @ jit(nopython=True)
     def _escape_time_julia(z, a, b, iterations, z_max):
         for i in range(iterations):
             z = z**3 - a*z + b
