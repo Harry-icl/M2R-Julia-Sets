@@ -4,7 +4,7 @@ The interactive gui plots the Mandelbrot set for the function z^3 - az + b, the 
 ## Usage
 First, install the package via the instructions in the [README](./README.md).
 
-Then, to run the GUI, use the command `python -m julia`.
+Then, to run the GUI, use the command `python -m julia`. The default is to use the quadratic function z^2 + c, to use the cubic function z^3 - az + b use the command `python -m julia -c`.
 
 ## Controls
 * **Zooming** - To zoom in on an area of a plot, click and drag the area you'd like to zoom in on.
