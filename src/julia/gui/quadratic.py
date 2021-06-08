@@ -108,7 +108,7 @@ def main(multiprocessing: bool = False):
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = multiprocessing
             start_coords = (x, y)
-            cv2.waitKey(5)  # this needs to be here so that clicks are \
+            cv2.waitKey(10)  # this needs to be here so that clicks are \
             # registered as such, otherwise a tiny drag will be detected.
 
         elif event == cv2.EVENT_LBUTTONUP and not drag:

@@ -1,5 +1,5 @@
 """Constants for the GUI."""
-RESOLUTION = 480
+RESOLUTION = 600
 ITERATIONS = 40
 X_RANGEM0 = (-2, 2)
 Y_RANGEM0 = (-2, 2)
