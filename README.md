@@ -11,3 +11,5 @@ in a directory of your choice.
     a. In editable mode: `pip install -e .`
     
     b. Without editable mode: `pip install .`
+## Using the GUI
+In order to use the GUI, install the package and then follow the instructions in the [GUI_README](./GUI_README.md) file.

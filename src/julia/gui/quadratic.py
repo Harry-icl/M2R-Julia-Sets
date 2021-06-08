@@ -86,7 +86,7 @@ def main(multiprocessing: bool = False):
             quadratic_map.c = to_complex(x, y,
                                          x_range_m, y_range_m,
                                          x_res_m, y_res_m)
-            print(f"Recalculating julia set with {quadratic_map.c} as b...")
+            print(f"Recalculating julia set with {quadratic_map.c} as c...")
             pil_img_julia = quadratic_map.draw_julia(res_x=x_res_j,
                                                      res_y=y_res_j,
                                                      iterations=ITERATIONS,
@@ -106,17 +106,17 @@ def main(multiprocessing: bool = False):
             open_cv_image_julia, x_res_j, y_res_j
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            btn_down = multiprocessing
+            btn_down = True
             start_coords = (x, y)
             cv2.waitKey(10)  # this needs to be here so that clicks are \
             # registered as such, otherwise a tiny drag will be detected.
 
         elif event == cv2.EVENT_LBUTTONUP and not drag:
             btn_down = False
-            quadratic_map.a = to_complex(*start_coords,
+            quadratic_map.c = to_complex(*start_coords,
                                          x_range_j, y_range_j,
                                          x_res_j, y_res_j)
-            print(f"Recalculating with {quadratic_map.a} as a...")
+            print(f"Recalculating with {quadratic_map.c} as c...")
             pil_img_julia = quadratic_map.draw_julia(res_x=x_res_j,
                                                      res_y=y_res_j,
                                                      iterations=ITERATIONS,
@@ -126,8 +126,9 @@ def main(multiprocessing: bool = False):
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
-                               title_generator_quad(x_range_j,
-                                                    y_range_j))
+                               title_generator_quad_julia(quadratic_map.c,
+                                                          x_range_j,
+                                                          y_range_j))
 
         elif event == cv2.EVENT_LBUTTONUP and drag:
             btn_down = False
@@ -156,8 +157,9 @@ def main(multiprocessing: bool = False):
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
-                               title_generator_quad(x_range_j,
-                                                    y_range_j))
+                               title_generator_quad_julia(quadratic_map.c,
+                                                          x_range_j,
+                                                          y_range_j))
 
         elif event == cv2.EVENT_MOUSEMOVE and btn_down:
             drag = True
@@ -243,7 +245,7 @@ def main(multiprocessing: bool = False):
         elif key == ord('e'):
             if not external_rays:
                 print("Drawing external rays...")
-                external_ray_open_cv_image = open_cv_image_julia.copy()
+                external_ray_open_cv_image = open_cv_image_mandel.copy()
                 zero_ray = [from_complex(z,
                                          x_range_j, y_range_j,
                                          x_res_j, y_res_j)
@@ -262,6 +264,9 @@ def main(multiprocessing: bool = False):
                              pair[0], pair[1],
                              color=RAY_COLOR, thickness=1)
 
-                cv2.imshow('julia', external_ray_open_cv_image)
-            if external_rays:
-                cv2.imshow('julia', open_cv_image_julia)
+                cv2.imshow('mandel', external_ray_open_cv_image)
+                external_rays = True
+            
+            elif external_rays:
+                cv2.imshow('mandel', open_cv_image_mandel)
+                external_rays = False

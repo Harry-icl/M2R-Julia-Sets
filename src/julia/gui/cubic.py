@@ -31,7 +31,7 @@ def main(multiprocessing: bool = False):
     def click_event_mandel(event, x, y, flags, params):
         """Process mouse interaction via cv2."""
         global btn_down, drag, x_range_m, y_range_m, start_coords, \
-            open_cv_image_mandel, x_res_m, y_res_m
+            open_cv_image_mandel, open_cv_image_julia, x_res_m, y_res_m
 
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = True
@@ -157,9 +157,9 @@ def main(multiprocessing: bool = False):
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
-                               title_generator(cubic_map.a,
-                                               x_range_j,
-                                               y_range_j))
+                               title_generator_julia(cubic_map.a,
+                                                     x_range_j,
+                                                     y_range_j))
 
         elif event == cv2.EVENT_LBUTTONUP and drag:
             btn_down = False
@@ -188,9 +188,10 @@ def main(multiprocessing: bool = False):
             open_cv_image_julia = np.array(pil_img_julia.convert('RGB'))
             cv2.imshow('julia', open_cv_image_julia)
             cv2.setWindowTitle('julia',
-                               title_generator(cubic_map.a,
-                                               x_range_j,
-                                               y_range_j))
+                               title_generator_julia(cubic_map.a,
+                                                     cubic_map.b,
+                                                     x_range_j,
+                                                     y_range_j))
 
         elif event == cv2.EVENT_MOUSEMOVE and btn_down:
             drag = True
