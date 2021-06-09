@@ -94,7 +94,8 @@ class Map(ABC):
                         x_range: tuple = (-3, 3),
                         y_range: tuple = (-3, 3),
                         z_max: float = 3,
-                        multiprocessing: bool = False) -> Image.Image:
+                        multiprocessing: bool = False,
+                        colormap: cm = cm.cubehelix_r) -> Image.Image:
         """
         Draw the Mandelbrot set for this map.
 
@@ -125,7 +126,7 @@ class Map(ABC):
                                              y_range,
                                              z_max,
                                              multiprocessing)
-        im = draw_from_array(results[::-1])
+        im = draw_from_array(results[::-1], colormap=colormap)
         return im
 
     def _calculate_julia(self,
@@ -163,7 +164,8 @@ class Map(ABC):
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
                    z_max: float = 3,
-                   multiprocessing: bool = False) -> Image.Image:
+                   multiprocessing: bool = False,
+                   colormap: cm = cm.cubehelix_r) -> Image.Image:
         """
         Draw the Julia set for this map with the current parameter values.
 
@@ -194,5 +196,5 @@ class Map(ABC):
                                         y_range,
                                         z_max,
                                         multiprocessing)
-        im = draw_from_array(results[::-1])
+        im = draw_from_array(results[::-1], colormap=colormap)
         return im

@@ -15,7 +15,8 @@ if __name__ == "__main__":
                         action='store_true')
     args = parser.parse_args()
     if args.cubic:
-        from .gui.cubic import main
+        from .gui import main_cubic
+        main_cubic(args.multiprocessing)
     else:
-        from .gui.quadratic import main
-    main(args.multiprocessing)
+        from .gui import main_quadratic
+        main_quadratic(args.multiprocessing)

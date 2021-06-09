@@ -1,7 +1,7 @@
 """Interactive GUI function for displaying Mandelbrot and Julia sets."""
 
 
-def main(multiprocessing: bool = False):
+def main_cubic(multiprocessing: bool = False):
     """Run the interactive GUI."""
     import cv2
     import numpy as np

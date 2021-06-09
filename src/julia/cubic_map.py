@@ -40,29 +40,21 @@ class CubicMap(Map):
     def _escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
         z1 = c1
         z2 = c2
-        z1_diverge = False
-        z2_diverge = False
-        for i in range(iterations):
-            z1 = z1**3 - a*z1 + b if not z1_diverge else z1
-            z2 = z2**3 - a*z2 + b if not z2_diverge else z2
-            if abs(z1 - c1) > z_max:
-                z1_diverge = True
-            if abs(z2 - c2) > z_max:
-                z2_diverge = True
-            if z1_diverge and z2_diverge:
-                return i / iterations
-        else:
-            return 1
+        i = 0
+        while i < iterations and abs(z1 - c1) < z_max and abs(z2 - c2) < z_max:
+            z1 = z1**3 - a*z1 + b
+            z2 = z2**3 - a*z2 + b
+            i += 1
+        return i / iterations
 
     @staticmethod
     @jit(nopython=True)
     def _escape_time_julia(z, a, b, iterations, z_max):
-        for i in range(iterations):
+        i = 0
+        while i < iterations and abs(z) < z_max:
             z = z**3 - a*z + b
-            if abs(z) > z_max:
-                return i / iterations
-        else:
-            return 1
+            i += 1
+        return i / iterations
 
     def _calculate_mandelbrot(self,
                               res_x: int = 600,

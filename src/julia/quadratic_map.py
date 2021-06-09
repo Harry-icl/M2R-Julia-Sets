@@ -39,22 +39,20 @@ class QuadraticMap(Map):
     @jit(nopython=True)
     def _escape_time_mandelbrot(c, iterations, z_max):
         z = c
-        for i in range(iterations):
+        i = 0
+        while i < iterations and abs(z) < z_max:
             z = z**2 + c
-            if abs(z) > z_max:
-                return i / iterations
-        else:
-            return 1
+            i += 1
+        return i / iterations
 
     @staticmethod
     @jit(nopython=True)
     def _escape_time_julia(z, c, iterations, z_max):
-        for i in range(iterations):
+        i = 0
+        while i < iterations and abs(z) < z_max:
             z = z**2 + c
-            if abs(z) > z_max:
-                return i / iterations
-        else:
-            return 1
+            i += 1
+        return i / iterations
 
     def _calculate_mandelbrot(self,
                               res_x: int = 600,
