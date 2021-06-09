@@ -113,6 +113,10 @@ class Map(ABC):
             The range of y values to consider.
         z_max: float
             The maximum z value before considering the point to have escaped.
+        multiprocessing: bool
+            Whether to use parallelisation or not.
+        colormap: cm
+            The colormap to use for the imaging.
 
         Returns
         -------

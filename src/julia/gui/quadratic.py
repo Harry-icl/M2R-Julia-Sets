@@ -266,7 +266,7 @@ def main_quadratic(multiprocessing: bool = False):
 
                 cv2.imshow('mandel', external_ray_open_cv_image)
                 external_rays = True
-            
+
             elif external_rays:
                 cv2.imshow('mandel', open_cv_image_mandel)
                 external_rays = False
