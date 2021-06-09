@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import math
 from PIL import Image, ImageDraw
 from matplotlib import cm
+from numbers import Number
 
 from .map import Map
 
@@ -88,6 +89,8 @@ class QuadraticMap(Map):
                          y_range: tuple = (-2, 2),
                          z_max: float = 2,
                          multiprocessing: bool = False) -> np.ndarray:
+        if not isinstance(self.c, Number):
+            raise ValueError(f'Expected Number for c, got {type(self.c)}.')
         num_list = [complex(x, y)
                     for y in np.linspace(y_range[0], y_range[1], res_y)
                     for x in np.linspace(x_range[0], x_range[1], res_x)]

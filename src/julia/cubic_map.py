@@ -5,6 +5,7 @@ import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from numba import jit
+from numbers import Number
 
 from .map import Map
 
@@ -64,6 +65,8 @@ class CubicMap(Map):
                               y_range: tuple = (-3, 3),
                               z_max: float = 3,
                               multiprocessing: bool = False) -> np.ndarray:
+        if not isinstance(self.a, Number):
+            raise ValueError(f"Expected Number for a, got {type(self.a)}.")
         c1 = -cmath.sqrt(self.a/3)
         c2 = cmath.sqrt(self.a/3)
         num_list = [complex(x, y)
@@ -98,6 +101,10 @@ class CubicMap(Map):
                          y_range: tuple = (-3, 3),
                          z_max: float = 3,
                          multiprocessing: bool = False) -> np.ndarray:
+        if not isinstance(self.a, Number):
+            raise ValueError(f"Expected Number for a, got {type(self.a)}.")
+        if not isinstance(self.b, Number):
+            raise ValueError(f"Expected Number for b, got {type(self.b)}.")
         num_list = [complex(x, y)
                     for y in np.linspace(y_range[0], y_range[1], res_y)
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
