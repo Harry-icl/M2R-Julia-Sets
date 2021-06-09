@@ -5,9 +5,35 @@ import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from numba import jit
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from .map import Map
+
+
+@jit(nopython=True)
+def complex_to_pixel(z: complex,
+                     res_x: int = 600,
+                     res_y: int = 600,
+                     x_range: tuple = (-3, 3),
+                     y_range: tuple = (-3, 3)) -> tuple:
+    """
+    Convert a complex number into pixel coordinates.
+
+    Parameters
+    ----------
+    z : complex
+        The complex number to convert.
+    res_x: int
+        The horizontal resolution of the image.
+    res_y: int
+        The vertical resolution of the image.
+    x_range: (float, float)
+        The range of x values to consider.
+    y_range: (float, float)
+        The range of y values to consider.
+    """
+    return (round((z.real-x_range[0])/(x_range[1]-x_range[0])*(res_x-1)),
+            round((z.imag-y_range[1])/(y_range[0]-y_range[1])*(res_y-1)))
 
 
 class CubicMap(Map):
@@ -243,7 +269,7 @@ class CubicNewtonMap(Map):
             z -= (z**3 - a*z + b)/(3*z**2 - a)
             for j, r in enumerate(roots):
                 if abs(z-r) < tol:
-                    result[j] = 255*(1-i/iterations)
+                    result[j] = int(255*(1-i/iterations))
                     return result
         return result
 
@@ -325,4 +351,129 @@ class CubicNewtonMap(Map):
                                         tol,
                                         multiprocessing)
         im = Image.fromarray(results[::-1], 'RGB')
+        return im
+
+    @staticmethod
+    @jit(nopython=True)
+    def _psi_inv(z, r, a):
+        if r == 0:
+            return cmath.infj
+        return (3*r**2*z+3*r**2-a)/(3*r*z)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _q(z, r, a):
+        return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
+                / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
+
+    @staticmethod
+    @jit(nopython=True)
+    def _dq(z, r, a):
+        return -6*(((18*r**4+3*a*r**2)*z**2
+                    + (27*r**4-9*a*r**2)*z
+                    + 9*r**4-6*a*r**2+a**2)
+                   / ((9*r**2*z + 6*r**2 - 2*a)**2*z**2))
+
+    @staticmethod
+    @jit(nopython=True)
+    def _f(z, r, a):
+        return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
+                / (9*r**2*z + 6*r**2 - 2*a))
+
+    @ staticmethod
+    @ jit(nopython=True)
+    def _df(z, r, a):
+        return (6*(9*r**2*z**2 + 9*r**2*z + 3*r**2 - a)
+                * (3*r**2*z + 3*r**2 - a)
+                / (9*r**2*z + 6*r**2 - 2*a)**2)
+
+    @ staticmethod
+    @ jit(nopython=False)
+    def _phi_newton(w_list, r, a, f, df, q, dq, phi_iters, newt_iters):
+        z = w_list[0]
+        z_list = []
+        for w in w_list:
+            for i in range(newt_iters):
+                phi = z * q(z, r, a)**(1.0/2.0)
+                dphi = 1/z + dq(z, r, a)/(2*q(z, r, a))
+                prev_f = z
+                prev_df = complex(1)
+                for k in range(2, phi_iters):
+                    prev_df *= df(prev_f, r, a)
+                    prev_f = f(prev_f, r, a)
+                    factor = q(prev_f, r, a)**(2.0**-k)
+                    summand = ((2.0**-k)*dq(prev_f, r, a)
+                               / q(prev_f, r, a)*prev_df)
+                    if not (cmath.isnan(factor) or cmath.isnan(summand)):
+                        phi *= factor
+                        dphi += summand
+                    elif not cmath.isnan(factor):
+                        phi *= factor
+                    elif not cmath.isnan(summand):
+                        dphi += summand
+                    else:
+                        break
+                z = z-1/dphi*(1-w/phi)
+            z_list.append(z)
+        return z_list
+
+    def _calculate_ray(self,
+                       res_x: int = 600,
+                       res_y: int = 600,
+                       x_range: tuple = (-3, 3),
+                       y_range: tuple = (-3, 3),
+                       root: complex = 0,
+                       angle: float = 0,
+                       res_ray: int = 1024,
+                       phi_iters: int = 128,
+                       newt_iters: int = 128):
+        w_list = np.array([cmath.rect(1/np.sin(r), angle)
+                           for r in np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+        result_list = self._phi_newton(w_list,
+                                       root,
+                                       self.cubic.a,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        result_list = np.fromiter(map(partial(self._psi_inv,
+                                              r=root,
+                                              a=self.cubic.a), result_list),
+                                  dtype=complex)
+        return list(map(partial(complex_to_pixel,
+                                res_x=res_x,
+                                res_y=res_y,
+                                x_range=x_range,
+                                y_range=y_range),
+                        result_list))
+
+    def draw_ray(self,
+                 res_x: int = 600,
+                 res_y: int = 600,
+                 x_range: tuple = (-3, 3),
+                 y_range: tuple = (-3, 3),
+                 root: complex = 0,
+                 multiples: int = 3,
+                 res_ray: int = 1024,
+                 phi_iters: int = 128,
+                 newt_iters: int = 128,
+                 line_weight: int = 2):
+        im = self.draw_julia(res_x=res_x,
+                             res_y=res_y,
+                             x_range=x_range,
+                             y_range=y_range)
+        d = ImageDraw.Draw(im)
+        for theta in np.linspace(0, 2*np.pi, multiples, endpoint=False):
+            ray = self._calculate_ray(res_x=res_x,
+                                      res_y=res_y,
+                                      x_range=x_range,
+                                      y_range=y_range,
+                                      root=root,
+                                      angle=theta,
+                                      res_ray=res_ray,
+                                      phi_iters=phi_iters,
+                                      newt_iters=newt_iters)
+            d.line(ray, fill=(255, 255, 255), width=line_weight, joint="curve")
         return im

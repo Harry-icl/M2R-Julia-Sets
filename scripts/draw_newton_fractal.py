@@ -1,6 +1,6 @@
 
 from julia import CubicMap, CubicNewtonMap
 
-cubic = CubicMap(a=1, b=0)
+cubic = CubicMap(a=0, b=-1)
 newton = CubicNewtonMap(cubic)
-newton.draw_julia(multiprocessing=False, res_x=4096, res_y=4096).show()
+newton.draw_julia(multiprocessing=False).show()
