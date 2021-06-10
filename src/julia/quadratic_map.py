@@ -390,7 +390,7 @@ class QuadraticNewtonMap(Map):
         Returns
         -------
         im: Image.Image
-            The image of the Mandelbrot set as a Pillow image object.
+            The image of the Julia set as a Pillow image object.
         """
         results = self._calculate_julia(res_x,
                                         res_y,
@@ -415,8 +415,8 @@ class QuadraticNewtonMap(Map):
                        root: float = 0,
                        angle: float = 0,
                        res_ray: int = 1024):
-        w_list = np.array([cmath.rect(r, angle) for r in
-                           np.geomspace(1, float(2**64), res_ray+1)[:0:-1]])
+        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
+                           np.linspace(0, np.pi/2, res_ray+1)[1:-1]])
         result_list = np.fromiter(map(partial(self._phi_inv,
                                               r=root), w_list),
                                   dtype=complex)
@@ -437,9 +437,32 @@ class QuadraticNewtonMap(Map):
                  res_ray: int = 1024,
                  line_weight: int = 1) -> Image.Image:
         """
-        Draw external rays.
+        Draw internal rays of the specified angle at all roots.
 
-        Oskar - docstring please.
+        Parameters
+        ----------
+        im: Image
+            The image on which to overla the rays. If None, the Julia set is
+            used.
+        res_x: int
+            The horizontal resolution of the image.
+        res_y: int
+            The vertical resolution of the image.
+        x_range: (float, float)
+            The range of x values to consider.
+        y_range: (float, float)
+            The range of y values to consider.
+        angle: float
+            The angle of the ray.
+        res_ray: float
+            The resolution of the ray.
+        line_weight: int
+            The pixel width of the ray.
+
+        Returns
+        -------
+        im: Image.Image
+            The image of the internal rays as a Pillow image object.
         """
         if im is None:
             im = self.draw_julia(res_x=res_x,
@@ -492,10 +515,33 @@ class QuadraticNewtonMap(Map):
                    res_eqpot: int = 1024,
                    line_weight: int = 1) -> Image.Image:
         """
-        Draw an equipotential line.
+         Draw equipotential lines of the specified potential at all roots.
 
-        Oskar - docstring please.
-        """
+         Parameters
+         ----------
+         im: Image
+             The image on which to overla the equipotentials. If None, the
+             Julia set is used.
+         res_x: int
+             The horizontal resolution of the image.
+         res_y: int
+             The vertical resolution of the image.
+         x_range: (float, float)
+             The range of x values to consider.
+         y_range: (float, float)
+             The range of y values to consider.
+         potential: float
+             The potential of the line.
+         res_eqpot: float
+             The resolution of the equipotential line.
+         line_weight: int
+             The pixel width of the equipotental line.
+
+         Returns
+         -------
+         im: Image.Image
+             The image of the equipotential line as a Pillow image object.
+         """
         if im is None:
             im = self.draw_julia(res_x=res_x,
                                  res_y=res_y,
