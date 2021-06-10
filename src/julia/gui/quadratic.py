@@ -14,6 +14,15 @@ def main_quadratic(multiprocessing: bool = False):
         RESOLUTION, ITERATIONS, REC_COLOR, RAY_COLOR
     from julia import QuadraticMap
 
+    root = sg.tk.Tk()  # DO NOT REMOVE
+    root.withdraw()  # These lines don't do anything, but if you remove them then it breaks the program on macos
+
+    cv2.namedWindow('GetFocus')
+    cv2.setWindowProperty("GetFocus", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.waitKey(1)
+    cv2.setWindowProperty("GetFocus", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.destroyWindow("GetFocus")
+
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
         start_coords, open_cv_image_mandel, open_cv_image_julia, \
         x_res_m, y_res_m, x_res_j, y_res_j, external_rays_angles
@@ -218,8 +227,6 @@ def main_quadratic(multiprocessing: bool = False):
     cv2.moveWindow('julia', RESOLUTION, 0)
     cv2.setMouseCallback('mandel', click_event_mandel)
     cv2.setMouseCallback('julia', click_event_julia)
-    cv2.setWindowProperty('mandel', cv2.WND_PROP_TOPMOST, 1)
-    cv2.setWindowProperty('julia', cv2.WND_PROP_TOPMOST, 1)
 
     while True:
         key = cv2.waitKey(0)
