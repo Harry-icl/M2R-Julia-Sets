@@ -15,8 +15,10 @@ if __name__ == "__main__":
                         action='store_true')
     args = parser.parse_args()
     if args.cubic:
-        from .gui import main_cubic
-        main_cubic(args.multiprocessing)
+        from .gui_rebuild import CubicWindows
+        cubic_gui = CubicWindows(multiprocessing=args.multiprocessing)
+        cubic_gui.start()
     else:
-        from .gui import main_quadratic
-        main_quadratic(args.multiprocessing)
+        from .gui_rebuild import QuadraticWindows
+        quadratic_gui = QuadraticWindows(multiprocessing=args.multiprocessing)
+        quadratic_gui.start()
