@@ -9,6 +9,7 @@ Then, to run the GUI, use the command `python -m julia`. The default is to use t
 ## Controls
 * **Zooming** - To zoom in on an area of a plot, click and drag the area you'd like to zoom in on.
 * **Choosing a** - To choose a new value for a, click any point on the plot and this complex number will be the new value.
-* **Choosing b** - To choose a new value for b for the Julia set, right click any point on the plot and this complex number will be the new value.
+* **Choosing b** - To choose a new value for b for the Julia set (or c in the quadratic case), right click any point on the plot and this complex number will be the new value.
 * **Reset** - Press the m key to reset the Mandelbrot set to its original zoom and the j key to reset the Julia set.
+* **External Rays** - To draw an external ray, press the e key and then enter the angle in the text box. To reset the external rays, press e and then click on the reset button.
 * **Quit** - Press the q key to quit the application.

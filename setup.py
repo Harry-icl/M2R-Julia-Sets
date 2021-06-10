@@ -23,5 +23,6 @@ setup(
         'numba',
         'Pillow',
         'opencv-python',
+        'PySimpleGUI',
     ],
 )

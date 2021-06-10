@@ -20,18 +20,20 @@ def main_quadratic(multiprocessing: bool = False):
     # These lines don't do anything, but if you remove them then it breaks the
     # program on macos
 
-    cv2.namedWindow('GetFocus')
-    cv2.setWindowProperty("GetFocus",
+    cv2.namedWindow('Loading...')
+    cv2.setWindowProperty("Loading...",
                           cv2.WND_PROP_FULLSCREEN,
                           cv2.WINDOW_FULLSCREEN)
     cv2.waitKey(1)
-    cv2.setWindowProperty("GetFocus",
+    cv2.setWindowProperty("Loading...",
                           cv2.WND_PROP_FULLSCREEN,
                           cv2.WINDOW_NORMAL)
-    cv2.destroyWindow("GetFocus")
+    cv2.destroyWindow("Loading...")
     # KEEP THESE TOO
     # These lines also don't do anything, but they make sure the window appears
     # in focus.
+
+    sg.SetOptions(font='Helvetica 15', border_width=5)
 
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
         start_coords, open_cv_image_mandel, open_cv_image_julia, \
@@ -285,11 +287,13 @@ def main_quadratic(multiprocessing: bool = False):
             sg.theme('Material1')
             layout = [
                 [sg.Text('Please enter the angle for the external ray as a mu'
-                         'ltiple of 2pi (i.e. enter 1 to get 2pi radians).')],
-                [sg.Text('Theta', size=(15, 1)), sg.InputText()],
-                [sg.Submit(),
-                 sg.Cancel(),
-                 sg.Button('Remove all external rays')]
+                         'ltiple of 2pi (i.e. enter 1 to get 2pi radians).',
+                         size=(50, 2))],
+                [sg.Text('Theta', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Ray', size=(25, 1))],
+                [sg.Text('Or enter the number of evenly-spaced rays you would '
+                         'like to draw.', size=(50, 2))],
+                [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Rays', size=(25, 1))],
+                [sg.Button('Remove all external rays', size=(22, 1)), sg.Cancel(size=(23, 1))]
             ]
             window = sg.Window('External rays', layout)
             event, values = window.read()
@@ -298,6 +302,7 @@ def main_quadratic(multiprocessing: bool = False):
                 continue
             elif event == 'Remove all external rays':
                 print("Removing external rays...")
+                external_rays_angles = []
                 pil_img_mandel = quadratic_map.draw_mandelbrot(res_x=x_res_m,
                                                                res_y=y_res_m,
                                                                iterations=ITERATIONS,  # noqa E501
@@ -309,10 +314,20 @@ def main_quadratic(multiprocessing: bool = False):
                 cv2.setWindowTitle('mandel',
                                    title_generator_quad(x_range_m,
                                                         y_range_m))
-            try:
-                theta = float(values[0])
-            except(ValueError):
-                print("Not a valid angle. Angles must be a float.")
-                continue
-            external_rays_angles += [theta]
-            draw_external_rays([theta])
+            if event == 'Draw Ray':
+                try:
+                    theta = float(values[0])
+                except(ValueError):
+                    print("Not a valid angle. Angles must be a float.")
+                    continue
+                external_rays_angles += [theta]
+                draw_external_rays([theta])
+            elif event == 'Draw Rays':
+                try:
+                    count = int(values[1])
+                except(ValueError):
+                    print("Not a valid number of rays. Number of rays must be an integer.")
+                    continue
+                theta_list = list(np.linspace(0, 1, count))
+                external_rays_angles += theta_list
+                draw_external_rays(theta_list)

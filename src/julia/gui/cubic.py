@@ -6,12 +6,34 @@ def main_cubic(multiprocessing: bool = False):
     import cv2
     import numpy as np
     from math import sqrt
+    import PySimpleGUI as sg
 
     from .tools import to_complex, from_complex, title_generator, \
         title_generator_julia
     from .constants import X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, \
         RESOLUTION, ITERATIONS, REC_COLOR, RAY_COLOR
     from julia import CubicMap
+
+    root = sg.tk.Tk()
+    root.withdraw()
+    # DO NOT REMOVE THESE LINES
+    # These lines don't do anything, but if you remove them then it breaks the
+    # program on macos
+
+    cv2.namedWindow('Loading...')
+    cv2.setWindowProperty("Loading...",
+                          cv2.WND_PROP_FULLSCREEN,
+                          cv2.WINDOW_FULLSCREEN)
+    cv2.waitKey(1)
+    cv2.setWindowProperty("Loading...",
+                          cv2.WND_PROP_FULLSCREEN,
+                          cv2.WINDOW_NORMAL)
+    cv2.destroyWindow("Loading...")
+    # KEEP THESE TOO
+    # These lines also don't do anything, but they make sure the window appears
+    # in focus.
+
+    sg.SetOptions(font='Helvetica 15', border_width=5)
 
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
         start_coords, open_cv_image_mandel, open_cv_image_julia, \
