@@ -14,14 +14,24 @@ def main_quadratic(multiprocessing: bool = False):
         RESOLUTION, ITERATIONS, REC_COLOR, RAY_COLOR
     from julia import QuadraticMap
 
-    root = sg.tk.Tk()  # DO NOT REMOVE
-    root.withdraw()  # These lines don't do anything, but if you remove them then it breaks the program on macos
+    root = sg.tk.Tk()
+    root.withdraw()
+    # DO NOT REMOVE THESE LINES
+    # These lines don't do anything, but if you remove them then it breaks the
+    # program on macos
 
     cv2.namedWindow('GetFocus')
-    cv2.setWindowProperty("GetFocus", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty("GetFocus",
+                          cv2.WND_PROP_FULLSCREEN,
+                          cv2.WINDOW_FULLSCREEN)
     cv2.waitKey(1)
-    cv2.setWindowProperty("GetFocus", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("GetFocus",
+                          cv2.WND_PROP_FULLSCREEN,
+                          cv2.WINDOW_NORMAL)
     cv2.destroyWindow("GetFocus")
+    # KEEP THESE TOO
+    # These lines also don't do anything, but they make sure the window appears
+    # in focus.
 
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
         start_coords, open_cv_image_mandel, open_cv_image_julia, \
@@ -274,9 +284,12 @@ def main_quadratic(multiprocessing: bool = False):
         elif key == ord('e'):
             sg.theme('Material1')
             layout = [
-                [sg.Text('Please enter the angle for the external ray as a multiple of 2pi (i.e. enter 1 to get 2pi radians).')],
+                [sg.Text('Please enter the angle for the external ray as a mu'
+                         'ltiple of 2pi (i.e. enter 1 to get 2pi radians).')],
                 [sg.Text('Theta', size=(15, 1)), sg.InputText()],
-                [sg.Submit(), sg.Cancel(), sg.Button('Remove all external rays')]
+                [sg.Submit(),
+                 sg.Cancel(),
+                 sg.Button('Remove all external rays')]
             ]
             window = sg.Window('External rays', layout)
             event, values = window.read()
@@ -288,8 +301,8 @@ def main_quadratic(multiprocessing: bool = False):
                 pil_img_mandel = quadratic_map.draw_mandelbrot(res_x=x_res_m,
                                                                res_y=y_res_m,
                                                                iterations=ITERATIONS,  # noqa E501
-                                                               x_range=x_range_m,
-                                                               y_range=y_range_m,
+                                                               x_range=x_range_m,  # noqa E501
+                                                               y_range=y_range_m,  # noqa E501
                                                                multiprocessing=multiprocessing)  # noqa E501
                 open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
                 cv2.imshow('mandel', open_cv_image_mandel)
@@ -298,7 +311,7 @@ def main_quadratic(multiprocessing: bool = False):
                                                         y_range_m))
             try:
                 theta = float(values[0])
-            except:
+            except(ValueError):
                 print("Not a valid angle. Angles must be a float.")
                 continue
             external_rays_angles += [theta]

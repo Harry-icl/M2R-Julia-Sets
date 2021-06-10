@@ -1,8 +1,6 @@
 """Module containing all of the classes for mappings."""
 from abc import ABC, abstractmethod
 import numpy as np
-import matplotlib as mpl
-mpl.use('tkagg')
 from matplotlib import cm
 from PIL import Image
 
