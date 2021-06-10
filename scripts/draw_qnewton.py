@@ -1,5 +1,8 @@
 from julia import QuadraticMap, QuadraticNewtonMap
+import numpy as np
 
-quad_newt = QuadraticNewtonMap(QuadraticMap(c=1j))
-quad_newt.draw_rays(res_x=2048, res_y=2048, line_weight=10, multiples=11)
-quad_newt.draw_eqpots(res_x=2048, res_y=2048, line_weight=10)
+qnewt = QuadraticNewtonMap(QuadraticMap(c=1j))
+im = qnewt.draw_julia(res_x=1440, res_y=1440)
+for angle in np.linspace(0, 2*np.pi, 3, endpoint=False):
+    im = qnewt.draw_ray(im=im, angle=angle, line_weight=10)
+qnewt.draw_eqpot(im=im, line_weight=5).show()
