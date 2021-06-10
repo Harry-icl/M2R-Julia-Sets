@@ -30,8 +30,8 @@ class CubicMap(Map):
         self.a = a
         self.b = b
 
-        if a == b == 0:
-            self.roots = np.array([complex(0)])
+        if b == 0:
+            self.roots = np.array([complex(0), cmath.sqrt(a), -cmath.sqrt(a)])
             return None
         elif a == 0:
             gamma = complex((-b)**(1/3))
@@ -331,18 +331,22 @@ class CubicNewtonMap(Map):
     @jit(nopython=True)
     def _psi_inv(z, r, a):
         if r == 0:
-            return cmath.infj
+            return cmath.sqrt(-a/2)/z
         return (3*r**2*z+3*r**2-a)/(3*r*z)
 
     @staticmethod
     @jit(nopython=True)
     def _q(z, r, a):
+        if r == 0:
+            return 1 + 3/(2*z**2)
         return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
                 / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
 
     @staticmethod
     @jit(nopython=True)
     def _dq(z, r, a):
+        if r == 0:
+            return -3/z**3
         return -6*(((18*r**4+3*a*r**2)*z**2
                     + (27*r**4-9*a*r**2)*z
                     + 9*r**4-6*a*r**2+a**2)
@@ -351,12 +355,16 @@ class CubicNewtonMap(Map):
     @staticmethod
     @jit(nopython=True)
     def _f(z, r, a):
+        if r == 0:
+            return z**3 + 3/2*z
         return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
                 / (9*r**2*z + 6*r**2 - 2*a))
 
     @ staticmethod
     @ jit(nopython=True)
     def _df(z, r, a):
+        if r == 0:
+            return 3*z**2 + 3/2
         return (6*(9*r**2*z**2 + 9*r**2*z + 3*r**2 - a)
                 * (3*r**2*z + 3*r**2 - a)
                 / (9*r**2*z + 6*r**2 - 2*a)**2)
@@ -364,19 +372,20 @@ class CubicNewtonMap(Map):
     @ staticmethod
     @ jit(nopython=False)
     def _phi_newton(w_list, r, a, f, df, q, dq, phi_iters, newt_iters):
+        pow = 3.0 if r == 0 else 2.0
         z = w_list[0]
         z_list = []
         for w in w_list:
             for i in range(newt_iters):
-                phi = z * q(z, r, a)**(1.0/2.0)
-                dphi = 1/z + dq(z, r, a)/(2*q(z, r, a))
+                phi = z * q(z, r, a)**(1/pow)
+                dphi = 1/z + dq(z, r, a)/(pow*q(z, r, a))
                 prev_f = z
                 prev_df = complex(1)
                 for k in range(2, phi_iters):
                     prev_df *= df(prev_f, r, a)
                     prev_f = f(prev_f, r, a)
-                    factor = q(prev_f, r, a)**(2.0**-k)
-                    summand = ((2.0**-k)*dq(prev_f, r, a)
+                    factor = q(prev_f, r, a)**(pow**-k)
+                    summand = ((pow**-k)*dq(prev_f, r, a)
                                / q(prev_f, r, a)*prev_df)
                     if not (cmath.isnan(factor) or cmath.isnan(summand)):
                         phi *= factor
@@ -401,8 +410,9 @@ class CubicNewtonMap(Map):
                        res_ray: int = 2048,
                        phi_iters: int = 128,
                        newt_iters: int = 256):
+        pow = 3.0 if root == 0 else 2.0
         w_list = np.array([cmath.rect(r, angle) for r in
-                           np.geomspace(1, float(2**64), res_ray+1)[:0:-1]])
+                           np.geomspace(1, float(pow**64), res_ray+1)[:0:-1]])
         result_list = self._phi_newton(w_list,
                                        root,
                                        self.cubic.a,
@@ -466,7 +476,7 @@ class CubicNewtonMap(Map):
                          res_eqpot: int = 2048,
                          phi_iters: int = 128,
                          newt_iters: int = 256):
-        w_list = np.array([cmath.rect(np.exp(1/potential), angle) for angle in
+        w_list = np.array([cmath.rect(np.exp(potential), angle) for angle in
                            np.linspace(-np.pi, np.pi, res_eqpot+1,
                                        endpoint=False)])
         result_list = self._phi_newton(w_list,

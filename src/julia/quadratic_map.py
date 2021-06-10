@@ -469,7 +469,7 @@ class QuadraticNewtonMap(Map):
                          root: complex = 0j,
                          potential: float = 1.0,
                          res_eqpot: int = 1024):
-        w_list = np.array([cmath.rect(np.exp(1/potential), angle) for angle in
+        w_list = np.array([cmath.rect(np.exp(potential), angle) for angle in
                            np.linspace(-np.pi, np.pi, res_eqpot+1,
                                        endpoint=False)])
         result_list = np.fromiter(map(partial(self._phi_inv,
