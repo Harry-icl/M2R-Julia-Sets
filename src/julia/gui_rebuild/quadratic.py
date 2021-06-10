@@ -1,3 +1,4 @@
+"""Module containing the QuadraticWindows class."""
 import cv2
 import numpy as np
 from math import sqrt
@@ -5,15 +6,31 @@ import PySimpleGUI as sg
 
 from julia.quadratic_map import QuadraticMap
 
-from .constants import X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION, ITERATIONS, REC_COLOR, RAY_COLOR
+from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
+                        ITERATIONS, REC_COLOR, RAY_COLOR)
 
 
 class QuadraticWindows:
+    """The class for the Quadratic GUI."""
+
     def __init__(self, multiprocessing):
         self.multiprocessing = multiprocessing
-    
+
+        self.btn_down, self.drag = False, False
+        self.x_range_m, self.y_range_m = X_RANGEM0, Y_RANGEM0
+        self.x_range_j, self.y_range_j = X_RANGEM0, Y_RANGEM0
+
+        self.start_coords = None
+        self.x_res_m, self.y_res_m = RESOLUTION, RESOLUTION
+        self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
+
+        self.external_rays_angles = []
+
+        self.quadratic_map = QuadraticMap(c=0)
+
     def start(self):
-        root = sg.tk.Tk()
+        """Start the quadratic GUI."""
+        root = sg.tk.Tk()  # DO NOT DELETE LINES 33-44 OR STUFF BREAKS
         root.withdraw()
 
         cv2.namedWindow('Loading...')
@@ -28,73 +45,74 @@ class QuadraticWindows:
 
         sg.SetOptions(font='Helvetica 15', border_width=5)
 
-        self.btn_down, self.drag = False, False
-        self.x_range_m, self.y_range_m = X_RANGEM0, Y_RANGEM0
-        self.x_range_j, self.y_range_j = X_RANGEM0, Y_RANGEM0
+        self._refresh_mandel()
+        self._refresh_julia()
 
-        self.start_coords = None
-        self.x_res_m, self.y_res_m = RESOLUTION, RESOLUTION
-        self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
-
-        self.external_rays_angles = []
-
-        self.quadratic_map = QuadraticMap(c=0)
-
-        self.refresh_mandel()
-        self.refresh_julia()
-        
         cv2.moveWindow('mandel', 0, 0)
         cv2.moveWindow('julia', RESOLUTION, 0)
-        cv2.setMouseCallback('mandel', self.click_event_mandel)
-        cv2.setMouseCallback('julia', self.click_event_julia)
-        self.main_loop()
-    
-    def title_generator(self):
+        cv2.setMouseCallback('mandel', self._click_event_mandel)
+        cv2.setMouseCallback('julia', self._click_event_julia)
+        self._main_loop()
+
+    def _title_generator(self):
         func_name = "z^2 + c"
-        bottom_left = (f"{round(self.x_range_m[0], 3)} + {round(self.y_range_m[0], 3)}i"
+        bottom_left = ((f"{round(self.x_range_m[0], 3)} + "
+                        f"{round(self.y_range_m[0], 3)}i")
                        if self.y_range_m[0] >= 0
-                       else f"{round(self.x_range_m[0], 3)} {round(self.y_range_m[0], 3)}i")
-        top_right = (f"{round(self.x_range_m[1], 3)} + {round(self.y_range_m[1], 3)}i"
+                       else (f"{round(self.x_range_m[0], 3)} "
+                             f"{round(self.y_range_m[0], 3)}i"))
+        top_right = ((f"{round(self.x_range_m[1], 3)} + "
+                      f"{round(self.y_range_m[1], 3)}i")
                      if self.y_range_m[1] >= 0
-                     else f"{round(self.x_range_m[1], 3)} {round(self.y_range_m[1], 3)}i")
+                     else (f"{round(self.x_range_m[1], 3)} "
+                           f"{round(self.y_range_m[1], 3)}i"))
         return f"Mandelbrot set of {func_name}, ({bottom_left}, {top_right})"
 
-    def title_generator_julia(self):
-        func_name = (f"z^2 + ({round(self.quadratic_map.c.real, 3)} + {round(self.quadratic_map.c.imag, 3)})i"
+    def _title_generator_julia(self):
+        func_name = ((f"z^2 + ({round(self.quadratic_map.c.real, 3)} + "
+                      f"{round(self.quadratic_map.c.imag, 3)})i")
                      if self.quadratic_map.c.imag >= 0
-                     else f"z^2 + ({round(self.quadratic_map.c.real, 3)} {round(self.quadratic_map.c.imag, 3)})i")
-        bottom_left = (f"{round(self.x_range_j[0], 3)} + {round(self.y_range_j[0], 3)}i"
+                     else (f"z^2 + ({round(self.quadratic_map.c.real, 3)} "
+                           f"{round(self.quadratic_map.c.imag, 3)})i"))
+        bottom_left = ((f"{round(self.x_range_j[0], 3)} + "
+                        f"{round(self.y_range_j[0], 3)}i")
                        if self.y_range_j[0] >= 0
-                       else f"{round(self.x_range_j[0], 3)} {round(self.y_range_j[0], 3)}i")
-        top_right = (f"{round(self.x_range_j[1], 3)} + {round(self.y_range_j[1], 3)}i"
+                       else (f"{round(self.x_range_j[0], 3)} "
+                             f"{round(self.y_range_j[0], 3)}i"))
+        top_right = ((f"{round(self.x_range_j[1], 3)} + "
+                      f"{round(self.y_range_j[1], 3)}i")
                      if self.y_range_j[1] >= 0
-                     else f"{round(self.x_range_j[1], 3)} {round(self.y_range_j[1], 3)}i")
+                     else (f"{round(self.x_range_j[1], 3)} "
+                           f"{round(self.y_range_j[1], 3)}i"))
         return f"Julia set of {func_name}, ({bottom_left}, {top_right})"
 
-    def refresh_mandel(self):
-        self.pil_img_mandel = self.quadratic_map.draw_mandelbrot(res_x=self.x_res_m,
-                                                                 res_y=self.y_res_m,
-                                                                 iterations=ITERATIONS,  # noqa E501
-                                                                 x_range=self.x_range_m,
-                                                                 y_range=self.y_range_m,
-                                                                 multiprocessing=self.multiprocessing)
-        self.open_cv_image_mandel = np.array(self.pil_img_mandel.convert('RGB'))
+    def _refresh_mandel(self):
+        self.pil_img_mandel = self.quadratic_map.draw_mandelbrot(
+            res_x=self.x_res_m,
+            res_y=self.y_res_m,
+            iterations=ITERATIONS,
+            x_range=self.x_range_m,
+            y_range=self.y_range_m,
+            multiprocessing=self.multiprocessing)
+        self.open_cv_image_mandel = np.array(
+            self.pil_img_mandel.convert('RGB'))
         cv2.imshow('mandel', self.open_cv_image_mandel)
-        cv2.setWindowTitle('mandel', self.title_generator())
-        self.draw_external_rays(self.external_rays_angles)
-    
-    def refresh_julia(self):
-        self.pil_img_julia = self.quadratic_map.draw_julia(res_x=self.x_res_j,
-                                                           res_y=self.y_res_j,
-                                                           iterations=ITERATIONS,
-                                                           x_range=self.x_range_j,
-                                                           y_range=self.y_range_j,
-                                                           multiprocessing=self.multiprocessing)
+        cv2.setWindowTitle('mandel', self._title_generator())
+        self._draw_external_rays(self.external_rays_angles)
+
+    def _refresh_julia(self):
+        self.pil_img_julia = self.quadratic_map.draw_julia(
+            res_x=self.x_res_j,
+            res_y=self.y_res_j,
+            iterations=ITERATIONS,
+            x_range=self.x_range_j,
+            y_range=self.y_range_j,
+            multiprocessing=self.multiprocessing)
         self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))
         cv2.imshow('julia', self.open_cv_image_julia)
-        cv2.setWindowTitle('julia', self.title_generator_julia())
+        cv2.setWindowTitle('julia', self._title_generator_julia())
 
-    def click_event_mandel(self, event, x, y, flags, params):
+    def _click_event_mandel(self, event, x, y, flags, params):
         """Process mouse interaction via cv2."""
         if event == cv2.EVENT_LBUTTONDOWN:
             self.btn_down = True
@@ -108,20 +126,21 @@ class QuadraticWindows:
         elif event == cv2.EVENT_LBUTTONUP and self.drag:
             self.btn_down = False
             self.drag = False
-            start_num = self.to_complex_m(*self.start_coords)
-            end_num = self.to_complex_m(x, y)
+            start_num = self._to_complex_m(*self.start_coords)
+            end_num = self._to_complex_m(x, y)
             self.x_range_m = (min(start_num.real, end_num.real),
                               max(start_num.real, end_num.real))
             self.y_range_m = (min(start_num.imag, end_num.imag),
                               max(start_num.imag, end_num.imag))
-            print(f"Recalculating in area x: {self.x_range_m}, y: {self.y_range_m}...")
+            print(f"Recalculating in area x: {self.x_range_m}, y: "
+                  f"{self.y_range_m}...")
             ratio = ((self.x_range_m[1] - self.x_range_m[0])
                      / (self.y_range_m[1] - self.y_range_m[0])
                      if self.y_range_m[0] != self.y_range_m[1]
                      else 1)
             self.x_res_m = int(RESOLUTION*sqrt(ratio))
             self.y_res_m = int(RESOLUTION/sqrt(ratio))
-            self.refresh_mandel()
+            self._refresh_mandel()
 
         elif event == cv2.EVENT_MOUSEMOVE and self.btn_down:
             self.drag = True
@@ -134,11 +153,12 @@ class QuadraticWindows:
             cv2.imshow('mandel', rectangle_open_cv_image_mandel)
 
         elif event == cv2.EVENT_RBUTTONDOWN:
-            self.quadratic_map.c = self.to_complex_m(x, y)
-            print(f"Recalculating julia set with {self.quadratic_map.c} as c...")
-            self.refresh_julia()
+            self.quadratic_map.c = self._to_complex_m(x, y)
+            print(f"Recalculating julia set with {self.quadratic_map.c} "
+                  f"as c...")
+            self._refresh_julia()
 
-    def click_event_julia(self, event, x, y, flags, params):
+    def _click_event_julia(self, event, x, y, flags, params):
         """Process mouse interaction in julia set window."""
         if event == cv2.EVENT_LBUTTONDOWN:
             self.btn_down = True
@@ -148,27 +168,28 @@ class QuadraticWindows:
 
         elif event == cv2.EVENT_LBUTTONUP and not self.drag:
             self.btn_down = False
-            self.quadratic_map.c = self.to_complex_j(*self.start_coords)
+            self.quadratic_map.c = self._to_complex_j(*self.start_coords)
             print(f"Recalculating with {self.quadratic_map.c} as c...")
-            self.refresh_julia()
+            self._refresh_julia()
 
         elif event == cv2.EVENT_LBUTTONUP and self.drag:
             self.btn_down = False
             self.drag = False
-            start_num = self.to_complex_j(*self.start_coords)
-            end_num = self.to_complex_j(x, y)
+            start_num = self._to_complex_j(*self.start_coords)
+            end_num = self._to_complex_j(x, y)
             self.x_range_j = (min(start_num.real, end_num.real),
                               max(start_num.real, end_num.real))
             self.y_range_j = (min(start_num.imag, end_num.imag),
                               max(start_num.imag, end_num.imag))
-            print(f"Recalculating in area x: {self.x_range_j}, y: {self.y_range_j}...")
+            print(f"Recalculating in area x: {self.x_range_j}, y: "
+                  f"{self.y_range_j}...")
             ratio = ((self.x_range_j[1] - self.x_range_j[0])
                      / (self.y_range_j[1] - self.y_range_j[0])
                      if self.y_range_j[0] != self.y_range_j[1]
                      else 1)
             self.x_res_j = int(RESOLUTION*sqrt(ratio))
             self.y_res_j = int(RESOLUTION/sqrt(ratio))
-            self.refresh_julia()
+            self._refresh_julia()
 
         elif event == cv2.EVENT_MOUSEMOVE and self.btn_down:
             self.drag = True
@@ -179,35 +200,39 @@ class QuadraticWindows:
                           color=REC_COLOR,
                           thickness=2)
             cv2.imshow('julia', rectangle_open_cv_image_julia)
-    
-    def to_complex_m(self, x, y):
+
+    def _to_complex_m(self, x, y):
         x_val = self.x_range_m[0] + ((x / self.x_res_m)
                                      * (self.x_range_m[1] - self.x_range_m[0]))
         y_val = self.y_range_m[1] - ((y / self.y_res_m)
                                      * (self.y_range_m[1] - self.y_range_m[0]))
         return complex(x_val, y_val)
 
-    def to_complex_j(self, x, y):
+    def _to_complex_j(self, x, y):
         x_val = self.x_range_j[0] + ((x / self.x_res_j)
                                      * (self.x_range_j[1] - self.x_range_j[0]))
         y_val = self.y_range_j[1] - ((y / self.y_res_j)
                                      * (self.y_range_j[1] - self.y_range_j[0]))
         return complex(x_val, y_val)
 
-    def from_complex_m(self, z):
-        x = (z.real - self.x_range_m[0]) * self.x_res_m / (self.x_range_m[1] - self.x_range_m[0])
-        y = (self.y_range_m[1] - z.imag) * self.y_res_m / (self.y_range_m[1] - self.y_range_m[0])
-        return int(x), int(y)
-    
-    def from_complex_j(self, z):
-        x = (z.real - self.x_range_j[0]) * self.x_res_j / (self.x_range_j[1] - self.x_range_j[0])
-        y = (self.y_range_j[1] - z.imag) * self.y_res_j / (self.y_range_j[1] - self.y_range_j[0])
+    def _from_complex_m(self, z):
+        x = ((z.real - self.x_range_m[0]) * self.x_res_m
+             / (self.x_range_m[1] - self.x_range_m[0]))
+        y = ((self.y_range_m[1] - z.imag) * self.y_res_m
+             / (self.y_range_m[1] - self.y_range_m[0]))
         return int(x), int(y)
 
-    def draw_external_rays(self, angles):
+    def _from_complex_j(self, z):
+        x = ((z.real - self.x_range_j[0]) * self.x_res_j
+             / (self.x_range_j[1] - self.x_range_j[0]))
+        y = ((self.y_range_j[1] - z.imag) * self.y_res_j
+             / (self.y_range_j[1] - self.y_range_j[0]))
+        return int(x), int(y)
+
+    def _draw_external_rays(self, angles):
         for theta in angles:
             print(f"Drawing external ray at {theta}*2pi radians...")
-            ray = [self.from_complex_m(z)
+            ray = [self._from_complex_m(z)
                    for z in self.quadratic_map.external_ray(theta)]
             pairs = zip(ray[:-1], ray[1:])
 
@@ -216,8 +241,8 @@ class QuadraticWindows:
                          pair[0], pair[1],
                          color=RAY_COLOR, thickness=1)
             cv2.imshow('mandel', self.open_cv_image_mandel)
-    
-    def main_loop(self):
+
+    def _main_loop(self):
         while True:
             key = cv2.waitKey(0)
             if key == ord('q'):
@@ -229,7 +254,7 @@ class QuadraticWindows:
                 self.y_res_m = RESOLUTION
                 self.x_range_m = X_RANGEM0
                 self.y_range_m = Y_RANGEM0
-                self.refresh_mandel()
+                self._refresh_mandel()
 
             elif key == ord('j'):
                 print("Resetting Julia view...")
@@ -237,19 +262,23 @@ class QuadraticWindows:
                 self.y_res_j = RESOLUTION
                 self.x_range_j = X_RANGEJ0
                 self.y_range_j = Y_RANGEJ0
-                self.refresh_julia()
+                self._refresh_julia()
 
             elif key == ord('e'):
                 sg.theme('Material1')
                 layout = [
-                    [sg.Text('Please enter the angle for the external ray as a mu'
-                            'ltiple of 2pi (i.e. enter 1 to get 2pi radians).',
-                            size=(50, 2))],
-                    [sg.Text('Theta', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Ray', size=(25, 1))],
-                    [sg.Text('Or enter the number of evenly-spaced rays you would '
-                            'like to draw.', size=(50, 2))],
-                    [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Rays', size=(25, 1))],
-                    [sg.Button('Remove all external rays', size=(22, 1)), sg.Cancel(size=(23, 1))]
+                    [sg.Text('Please enter the angle for the external ray as a'
+                             'multiple of 2pi (i.e. enter 1 to get 2pi radians'
+                             ').', size=(50, 2))],
+                    [sg.Text('Theta', size=(10, 1)),
+                     sg.InputText(size=(10, 1)),
+                     sg.Button('Draw Ray', size=(25, 1))],
+                    [sg.Text('Or enter the number of evenly-spaced rays you wo'
+                             'uld like to draw.', size=(50, 2))],
+                    [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
+                     sg.Button('Draw Rays', size=(25, 1))],
+                    [sg.Button('Remove all external rays', size=(22, 1)),
+                     sg.Cancel(size=(23, 1))]
                 ]
                 window = sg.Window('External rays', layout)
                 event, values = window.read()
@@ -259,7 +288,7 @@ class QuadraticWindows:
                 elif event == 'Remove all external rays':
                     print("Removing external rays...")
                     self.external_rays_angles = []
-                    self.refresh_mandel()
+                    self._refresh_mandel()
                 if event == 'Draw Ray':
                     try:
                         theta = float(values[0])
@@ -267,13 +296,14 @@ class QuadraticWindows:
                         print("Not a valid angle. Angles must be a float.")
                         continue
                     self.external_rays_angles += [theta]
-                    self.draw_external_rays([theta])
+                    self._draw_external_rays([theta])
                 elif event == 'Draw Rays':
                     try:
                         count = int(values[1])
                     except(ValueError):
-                        print("Not a valid number of rays. Number of rays must be an integer.")
+                        print("Not a valid number of rays. Number of rays must"
+                              " be an integer.")
                         continue
                     theta_list = list(np.linspace(0, 1, count))
                     self.external_rays_angles += theta_list
-                    self.draw_external_rays(theta_list)
+                    self._draw_external_rays(theta_list)
