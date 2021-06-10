@@ -7,33 +7,7 @@ import matplotlib.pyplot as plt
 from numba import jit
 from PIL import Image, ImageDraw
 
-from .map import Map
-
-
-@jit(nopython=True)
-def complex_to_pixel(z: complex,
-                     res_x: int = 600,
-                     res_y: int = 600,
-                     x_range: tuple = (-3, 3),
-                     y_range: tuple = (-3, 3)) -> tuple:
-    """
-    Convert a complex number into pixel coordinates.
-
-    Parameters
-    ----------
-    z : complex
-        The complex number to convert.
-    res_x: int
-        The horizontal resolution of the image.
-    res_y: int
-        The vertical resolution of the image.
-    x_range: (float, float)
-        The range of x values to consider.
-    y_range: (float, float)
-        The range of y values to consider.
-    """
-    return (round((z.real-x_range[0])/(x_range[1]-x_range[0])*(res_x-1)),
-            round((z.imag-y_range[1])/(y_range[0]-y_range[1])*(res_y-1)))
+from .map import Map, complex_to_pixel
 
 
 class CubicMap(Map):
@@ -424,11 +398,11 @@ class CubicNewtonMap(Map):
                        y_range: tuple = (-3, 3),
                        root: complex = 0,
                        angle: float = 0,
-                       res_ray: int = 1024,
+                       res_ray: int = 2048,
                        phi_iters: int = 128,
-                       newt_iters: int = 128):
-        w_list = np.array([cmath.rect(1/np.sin(r), angle)
-                           for r in np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+                       newt_iters: int = 256):
+        w_list = np.array([cmath.rect(r, angle) for r in
+                           np.geomspace(1, float(2**64), res_ray+1)[:0:-1]])
         result_list = self._phi_newton(w_list,
                                        root,
                                        self.cubic.a,
@@ -450,30 +424,100 @@ class CubicNewtonMap(Map):
                         result_list))
 
     def draw_ray(self,
+                 im: Image = None,
                  res_x: int = 600,
                  res_y: int = 600,
                  x_range: tuple = (-3, 3),
                  y_range: tuple = (-3, 3),
-                 root: complex = 0,
-                 multiples: int = 3,
+                 angle: float = 0,
                  res_ray: int = 1024,
                  phi_iters: int = 128,
-                 newt_iters: int = 128,
-                 line_weight: int = 2):
-        im = self.draw_julia(res_x=res_x,
-                             res_y=res_y,
-                             x_range=x_range,
-                             y_range=y_range)
+                 newt_iters: int = 256,
+                 line_weight: int = 1):
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for theta in np.linspace(0, 2*np.pi, multiples, endpoint=False):
+        for root in self.cubic.roots:
             ray = self._calculate_ray(res_x=res_x,
                                       res_y=res_y,
                                       x_range=x_range,
                                       y_range=y_range,
                                       root=root,
-                                      angle=theta,
+                                      angle=angle,
                                       res_ray=res_ray,
                                       phi_iters=phi_iters,
                                       newt_iters=newt_iters)
-            d.line(ray, fill=(255, 255, 255), width=line_weight, joint="curve")
+            d.line(ray, fill=(255, 255, 255),
+                   width=line_weight, joint="curve")
+        return im
+
+    def _calculate_eqpot(self,
+                         res_x: int = 600,
+                         res_y: int = 600,
+                         x_range: tuple = (-3, 3),
+                         y_range: tuple = (-3, 3),
+                         root: complex = 0j,
+                         potential: float = 1.0,
+                         res_eqpot: int = 2048,
+                         phi_iters: int = 128,
+                         newt_iters: int = 256):
+        w_list = np.array([cmath.rect(np.exp(1/potential), angle) for angle in
+                           np.linspace(-np.pi, np.pi, res_eqpot+1,
+                                       endpoint=False)])
+        result_list = self._phi_newton(w_list,
+                                       root,
+                                       self.cubic.a,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        result_list = np.fromiter(map(partial(self._psi_inv,
+                                              r=root,
+                                              a=self.cubic.a), result_list),
+                                  dtype=complex)
+        return list(map(partial(complex_to_pixel,
+                                res_x=res_x,
+                                res_y=res_y,
+                                x_range=x_range,
+                                y_range=y_range),
+                        result_list))
+
+    def draw_eqpot(self,
+                   im: Image = None,
+                   res_x: int = 600,
+                   res_y: int = 600,
+                   x_range: tuple = (-3, 3),
+                   y_range: tuple = (-3, 3),
+                   potential: float = 1.0,
+                   res_eqpot: int = 2048,
+                   phi_iters: int = 128,
+                   newt_iters: int = 256,
+                   line_weight: int = 1):
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        for root in self.cubic.roots:
+            ray = self._calculate_eqpot(res_x=res_x,
+                                        res_y=res_y,
+                                        x_range=x_range,
+                                        y_range=y_range,
+                                        root=root,
+                                        potential=potential,
+                                        res_eqpot=res_eqpot,
+                                        phi_iters=phi_iters,
+                                        newt_iters=newt_iters)
+            d.line(ray, fill=(255, 255, 255),
+                   width=line_weight, joint="curve")
         return im
