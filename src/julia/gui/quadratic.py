@@ -6,6 +6,7 @@ def main_quadratic(multiprocessing: bool = False):
     import cv2
     import numpy as np
     from math import sqrt
+    import PySimpleGUI as sg
 
     from .tools import to_complex, from_complex, title_generator_quad, \
         title_generator_quad_julia
@@ -243,30 +244,29 @@ def main_quadratic(multiprocessing: bool = False):
                                                           y_range_j))
 
         elif key == ord('e'):
-            if not external_rays:
-                print("Drawing external rays...")
-                external_ray_open_cv_image = open_cv_image_mandel.copy()
-                zero_ray = [from_complex(z,
-                                         x_range_j, y_range_j,
-                                         x_res_j, y_res_j)
-                            for z in quadratic_map.external_ray(0)]
-                pi_3_ray = [from_complex(z,
-                                         x_range_j, y_range_j,
-                                         x_res_j, y_res_j)
-                            for z in quadratic_map.external_ray(1/6)]
-                pi_ray = [from_complex(z)
-                          for z in quadratic_map.external_ray(1/2)]
-                pairs = zip(zero_ray[:-1] + pi_3_ray[:-1] + pi_ray[:-1],
-                            zero_ray[1:] + pi_3_ray[1:] + pi_ray[1:])
+            sg.theme('Material1')
+            layout = [
+                [sg.Text('Please enter the angle for the external ray as a multiple of pi (i.e. enter 1 to get pi radians).')],
+                [sg.Text('Theta', size=(15, 1)), sg.InputText()],
+                [sg.Submit(), sg.Cancel()]
+            ]
+            window = sg.Window('External rays', layout)
+            event, values = window.read()
+            window.close()
+            if event == sg.WND_CLOSED or event ==  'Cancel':
+                continue
+            theta = values[0]
+            print(f"Drawing external ray at {theta}*pi radians...")
+            external_ray_open_cv_image = open_cv_image_mandel.copy()
+            ray = [from_complex(z,
+                                x_range_j, y_range_j,
+                                x_res_j, y_res_j)
+                   for z in quadratic_map.external_ray(theta)]
+            pairs = zip(ray[:-1], ray[1:])
 
-                for pair in pairs:
-                    cv2.line(external_ray_open_cv_image,
-                             pair[0], pair[1],
-                             color=RAY_COLOR, thickness=1)
+            for pair in pairs:
+                cv2.line(external_ray_open_cv_image,
+                            pair[0], pair[1],
+                            color=RAY_COLOR, thickness=1)
 
-                cv2.imshow('mandel', external_ray_open_cv_image)
-                external_rays = True
-
-            elif external_rays:
-                cv2.imshow('mandel', open_cv_image_mandel)
-                external_rays = False
+            cv2.imshow('mandel', external_ray_open_cv_image)
