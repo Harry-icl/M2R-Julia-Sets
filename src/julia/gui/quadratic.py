@@ -16,7 +16,7 @@ def main_quadratic(multiprocessing: bool = False):
 
     global btn_down, drag, x_range_m, y_range_m, x_range_j, y_range_j, \
         start_coords, open_cv_image_mandel, open_cv_image_julia, \
-        x_res_m, y_res_m, x_res_j, y_res_j
+        x_res_m, y_res_m, x_res_j, y_res_j, external_rays_angles
 
     btn_down, drag = False, False
     x_range_m, y_range_m = X_RANGEM0, Y_RANGEM0
@@ -27,12 +27,29 @@ def main_quadratic(multiprocessing: bool = False):
     y_res_m = RESOLUTION
     x_res_j = RESOLUTION
     y_res_j = RESOLUTION
-    external_rays = False
+    external_rays_angles = []
+
+    def draw_external_rays(angles):
+        global open_cv_image_mandel, x_range_m, y_range_m, x_res_m, y_res_m
+        for theta in angles:
+            print(f"Drawing external ray at {theta}*2pi radians...")
+            ray = [from_complex(z,
+                                x_range_m, y_range_m,
+                                x_res_m, y_res_m)
+                   for z in quadratic_map.external_ray(theta)]
+            pairs = zip(ray[:-1], ray[1:])
+
+            for pair in pairs:
+                cv2.line(open_cv_image_mandel,
+                         pair[0], pair[1],
+                         color=RAY_COLOR, thickness=1)
+            cv2.imshow('mandel', open_cv_image_mandel)
 
     def click_event_mandel(event, x, y, flags, params):
         """Process mouse interaction via cv2."""
         global btn_down, drag, x_range_m, y_range_m, start_coords, \
-            open_cv_image_mandel, open_cv_image_julia, x_res_m, y_res_m
+            open_cv_image_mandel, open_cv_image_julia, x_res_m, y_res_m, \
+            external_rays_angles
 
         if event == cv2.EVENT_LBUTTONDOWN:
             btn_down = True
@@ -72,6 +89,7 @@ def main_quadratic(multiprocessing: bool = False):
             cv2.setWindowTitle('mandel',
                                title_generator_quad(x_range_m,
                                                     y_range_m))
+            draw_external_rays(external_rays_angles)
 
         elif event == cv2.EVENT_MOUSEMOVE and btn_down:
             drag = True
@@ -209,6 +227,7 @@ def main_quadratic(multiprocessing: bool = False):
             cv2.destroyAllWindows()
             break
         elif key == ord('m'):
+            print("Resetting Mandelbrot view...")
             x_res_m = RESOLUTION
             y_res_m = RESOLUTION
             x_range_m = X_RANGEM0
@@ -224,8 +243,10 @@ def main_quadratic(multiprocessing: bool = False):
             cv2.setWindowTitle('mandel',
                                title_generator_quad(x_range_m,
                                                     y_range_m))
+            draw_external_rays(external_rays_angles)
 
         elif key == ord('j'):
+            print("Resetting Julia view...")
             x_res_j = RESOLUTION
             y_res_j = RESOLUTION
             x_range_j = X_RANGEJ0
@@ -246,27 +267,32 @@ def main_quadratic(multiprocessing: bool = False):
         elif key == ord('e'):
             sg.theme('Material1')
             layout = [
-                [sg.Text('Please enter the angle for the external ray as a multiple of pi (i.e. enter 1 to get pi radians).')],
+                [sg.Text('Please enter the angle for the external ray as a multiple of 2pi (i.e. enter 1 to get 2pi radians).')],
                 [sg.Text('Theta', size=(15, 1)), sg.InputText()],
-                [sg.Submit(), sg.Cancel()]
+                [sg.Submit(), sg.Cancel(), sg.Button('Remove all external rays')]
             ]
             window = sg.Window('External rays', layout)
             event, values = window.read()
             window.close()
-            if event == sg.WND_CLOSED or event ==  'Cancel':
+            if event == sg.WIN_CLOSED or event == 'Cancel':
                 continue
-            theta = values[0]
-            print(f"Drawing external ray at {theta}*pi radians...")
-            external_ray_open_cv_image = open_cv_image_mandel.copy()
-            ray = [from_complex(z,
-                                x_range_j, y_range_j,
-                                x_res_j, y_res_j)
-                   for z in quadratic_map.external_ray(theta)]
-            pairs = zip(ray[:-1], ray[1:])
-
-            for pair in pairs:
-                cv2.line(external_ray_open_cv_image,
-                            pair[0], pair[1],
-                            color=RAY_COLOR, thickness=1)
-
-            cv2.imshow('mandel', external_ray_open_cv_image)
+            elif event == 'Remove all external rays':
+                print("Removing external rays...")
+                pil_img_mandel = quadratic_map.draw_mandelbrot(res_x=x_res_m,
+                                                               res_y=y_res_m,
+                                                               iterations=ITERATIONS,  # noqa E501
+                                                               x_range=x_range_m,
+                                                               y_range=y_range_m,
+                                                               multiprocessing=multiprocessing)  # noqa E501
+                open_cv_image_mandel = np.array(pil_img_mandel.convert('RGB'))
+                cv2.imshow('mandel', open_cv_image_mandel)
+                cv2.setWindowTitle('mandel',
+                                   title_generator_quad(x_range_m,
+                                                        y_range_m))
+            try:
+                theta = float(values[0])
+            except:
+                print("Not a valid angle. Angles must be a float.")
+                continue
+            external_rays_angles += [theta]
+            draw_external_rays([theta])

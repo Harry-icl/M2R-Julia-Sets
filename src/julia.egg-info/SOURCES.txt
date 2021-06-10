@@ -2,8 +2,17 @@ README.md
 setup.cfg
 setup.py
 src/julia/__init__.py
+src/julia/__main__.py
+src/julia/cubic_map.py
 src/julia/map.py
+src/julia/quadratic_map.py
 src/julia.egg-info/PKG-INFO
 src/julia.egg-info/SOURCES.txt
 src/julia.egg-info/dependency_links.txt
+src/julia.egg-info/requires.txt
 src/julia.egg-info/top_level.txt
+src/julia/gui/__init__.py
+src/julia/gui/constants.py
+src/julia/gui/cubic.py
+src/julia/gui/quadratic.py
+src/julia/gui/tools.py

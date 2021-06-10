@@ -27,7 +27,7 @@ def to_complex(x, y, x_range, y_range, x_res, y_res):
     """
     x_val = x_range[0] + ((x / x_res)
                           * (x_range[1] - x_range[0]))
-    y_val = y_range[0] + (((y_res - y) / y_res)
+    y_val = y_range[1] - ((y / y_res)
                           * (y_range[1] - y_range[0]))
     return complex(x_val, y_val)
 
@@ -55,7 +55,7 @@ def from_complex(z, x_range, y_range, x_res, y_res):
         The coordinates of the corresponding point.
     """
     x = (z.real - x_range[0]) * x_res / (x_range[1] - x_range[0])
-    y = y_res - (z.imag - x_range[0]) * y_res / (y_range[1] - y_range[0])
+    y = (y_range[1] - z.imag) * y_res / (y_range[1] - y_range[0])
     return int(x), int(y)
 
 
