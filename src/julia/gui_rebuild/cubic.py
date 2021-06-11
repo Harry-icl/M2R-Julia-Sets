@@ -137,6 +137,7 @@ class CubicWindows:
             self.cubic_map.a = self._to_complex_m(*self.start_coords)
             print(f"Recalculating with {self.cubic_map.a} as a...")
             self._refresh_mandel()
+            self._refresh_julia()
 
         elif event == cv2.EVENT_LBUTTONUP and self.drag:
             self.btn_down = False

@@ -39,7 +39,7 @@ class QuadraticMap(Map):
     @staticmethod
     @jit(nopython=True)
     def _escape_time_mandelbrot(c, iterations, z_max):
-        z = c
+        z = 0
         i = 0
         while i < iterations and abs(z) < z_max:
             z = z**2 + c
@@ -268,7 +268,7 @@ class QuadraticNewtonMap(Map):
         self.quadratic = quadratic
 
     def __call__(self, z: complex) -> complex:  # noqa D102
-        return z - self.quadratic.derivative(z)/self.quadratic(z)
+        return z - self.quadratic(z)/self.quadratic.derivative(z)
 
     @staticmethod
     @jit(nopython=True)

@@ -304,6 +304,10 @@ class QuadraticWindows:
                         print("Not a valid number of rays. Number of rays must"
                               " be an integer.")
                         continue
+                    if count < 1:
+                        print("Not a valid number of rays. Number of rays must"
+                              " be an integer.")
+                        continue
                     theta_list = list(np.linspace(0, 1, count))
                     self.external_rays_angles += theta_list
                     self._draw_external_rays(theta_list)

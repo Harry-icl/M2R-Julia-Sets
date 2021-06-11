@@ -205,7 +205,7 @@ class CubicNewtonMap(Map):
         self.cubic = cubic
 
     def __call__(self, z: complex) -> complex:  # noqa D102
-        return z - self.cubic.derivative(z)/self.cubic(z)
+        return z - self.cubic(z)/self.cubic.derivative(z)
 
     def _calculate_mandelbrot(self,
                               res_x: int = 600,
