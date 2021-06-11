@@ -25,6 +25,7 @@ class QuadraticWindows:
         self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
 
         self.external_rays_angles = []
+        self.equipotentials = []
 
         self.quadratic_map = QuadraticMap(c=0)
 
@@ -44,6 +45,7 @@ class QuadraticWindows:
         cv2.destroyWindow("Loading...")
 
         sg.SetOptions(font='Helvetica 15', border_width=5)
+        sg.theme('Material1')
 
         self._refresh_mandel()
         self._refresh_julia()
@@ -242,6 +244,9 @@ class QuadraticWindows:
                          color=RAY_COLOR, thickness=1)
             cv2.imshow('mandel', self.open_cv_image_mandel)
 
+    def _draw_equipotentials(self, potentials):
+        return NotImplementedError
+
     def _main_loop(self):
         while True:
             key = cv2.waitKey(0)
@@ -265,7 +270,6 @@ class QuadraticWindows:
                 self._refresh_julia()
 
             elif key == ord('r'):
-                sg.theme('Material1')
                 layout = [
                     [sg.Text('Please enter the angle for the external ray as a'
                              'multiple of 2pi (i.e. enter 1 to get 2pi radians'
@@ -308,6 +312,50 @@ class QuadraticWindows:
                         print("Not a valid number of rays. Number of rays must"
                               " be an integer.")
                         continue
-                    theta_list = list(np.linspace(0, 1, count))
+                    theta_list = list(np.linspace(0, 1, count, endpoint=False))
                     self.external_rays_angles += theta_list
                     self._draw_external_rays(theta_list)
+
+            elif key == ord('e'):
+                layout = [
+                    [sg.Text('Please enter the potential for the equipotential line.',
+                             size=(50, 2))],
+                    [sg.Text('Potential', size=(10, 1)),
+                     sg.InputText(size=(10, 1)),
+                     sg.Button('Draw Equipotential', size=(25, 1))],
+                    [sg.Text('Or enter the number of evenly-logarithmically-spaced equipotential lines you wo'
+                             'uld like to draw.', size=(50, 2))],
+                    [sg.Text('Lines', size=(10, 1)), sg.InputText(size=(10, 1)),
+                     sg.Button('Draw Equipotentials', size=(25, 1))],
+                    [sg.Button('Remove all equipotential lines', size=(22, 1)),
+                     sg.Cancel(size=(23, 1))]
+                ]
+                window = sg.Window('Equipotential Lines', layout)
+                event, values = window.read()
+                window.close()
+                if event == sg.WIN_CLOSED or event == 'Cancel':
+                    continue
+                elif event == 'Remove all equipotential lines':
+                    print("Removing equipotentials...")
+                    self.equipotentials = []
+                    self._refresh_julia()
+                elif event == 'Draw Equipotential':
+                    try:
+                        potential = float(values[0])
+                    except(ValueError):
+                        print('Not a valid potential. Potentials must be a float')
+                    self.equipotentials += [potential]
+                    self._draw_equipotentials([potential])
+                elif event == 'Draw Equipotentials':
+                    try:
+                        count = int(values[1])
+                    except(ValueError):
+                        print("Not a valid number of potentials. Number of potentials must be an integer.")
+                        continue
+                    if count < 1:
+                        print("Not a valid number of potentials. Number of potentials must"
+                              " be positive.")
+                        continue
+                    potential_list = list(np.logspace(-5, 3, count, base=2))
+                    self.equipotentials += potential_list
+                    self._draw_equipotentials(potential_list)
