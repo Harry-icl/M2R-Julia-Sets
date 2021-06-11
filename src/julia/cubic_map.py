@@ -334,59 +334,51 @@ class CubicNewtonMap(Map):
             return cmath.sqrt(-a/2)/z
         return (3*r**2*z+3*r**2-a)/(3*r*z)
 
-    @staticmethod
-    @jit(nopython=True)
-    def _q(z, r, a):
-        if r == 0:
-            return 1 + 3/(2*z**2)
-        return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
-                / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
-
-    @staticmethod
-    @jit(nopython=True)
-    def _dq(z, r, a):
-        if r == 0:
-            return -3/z**3
-        return -6*(((18*r**4+3*a*r**2)*z**2
-                    + (27*r**4-9*a*r**2)*z
-                    + 9*r**4-6*a*r**2+a**2)
-                   / ((9*r**2*z + 6*r**2 - 2*a)**2*z**2))
-
-    @staticmethod
-    @jit(nopython=True)
-    def _f(z, r, a):
-        if r == 0:
-            return z**3 + 3/2*z
-        return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
-                / (9*r**2*z + 6*r**2 - 2*a))
-
     @ staticmethod
     @ jit(nopython=True)
-    def _df(z, r, a):
-        if r == 0:
-            return 3*z**2 + 3/2
-        return (6*(9*r**2*z**2 + 9*r**2*z + 3*r**2 - a)
-                * (3*r**2*z + 3*r**2 - a)
-                / (9*r**2*z + 6*r**2 - 2*a)**2)
+    def _phi_newton(w_list, r, a, phi_iters, newt_iters):
+        def _q(z):
+            if r == 0:
+                return 1 + 3/(2*z**2)
+            return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
+                    / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
 
-    @ staticmethod
-    @ jit(nopython=False)
-    def _phi_newton(w_list, r, a, f, df, q, dq, phi_iters, newt_iters):
+        def _dq(z):
+            if r == 0:
+                return -3/z**3
+            return -6*(((18*r**4+3*a*r**2)*z**2
+                        + (27*r**4-9*a*r**2)*z
+                        + 9*r**4-6*a*r**2+a**2)
+                       / ((9*r**2*z + 6*r**2 - 2*a)**2*z**2))
+
+        def _f(z):
+            if r == 0:
+                return z**3 + 3/2*z
+            return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
+                    / (9*r**2*z + 6*r**2 - 2*a))
+
+        def _df(z):
+            if r == 0:
+                return 3*z**2 + 3/2
+            return (6*(9*r**2*z**2 + 9*r**2*z + 3*r**2 - a)
+                    * (3*r**2*z + 3*r**2 - a)
+                    / (9*r**2*z + 6*r**2 - 2*a)**2)
+
         pow = 3.0 if r == 0 else 2.0
         z = w_list[0]
-        z_list = []
-        for w in w_list:
-            for i in range(newt_iters):
-                phi = z * q(z, r, a)**(1/pow)
-                dphi = 1/z + dq(z, r, a)/(pow*q(z, r, a))
+        z_list = np.zeros_like(w_list)
+        for i, w in enumerate(w_list):
+            for j in range(newt_iters):
+                phi = z * _q(z)**(1/pow)
+                dphi = 1/z + _dq(z)/(pow*_q(z))
                 prev_f = z
                 prev_df = complex(1)
                 for k in range(2, phi_iters):
-                    prev_df *= df(prev_f, r, a)
-                    prev_f = f(prev_f, r, a)
-                    factor = q(prev_f, r, a)**(pow**-k)
-                    summand = ((pow**-k)*dq(prev_f, r, a)
-                               / q(prev_f, r, a)*prev_df)
+                    prev_df *= _df(prev_f)
+                    prev_f = _f(prev_f)
+                    factor = _q(prev_f)**(pow**-k)
+                    summand = ((pow**-k)*_dq(prev_f)
+                               / _q(prev_f)*prev_df)
                     if not (cmath.isnan(factor) or cmath.isnan(summand)):
                         phi *= factor
                         dphi += summand
@@ -397,7 +389,7 @@ class CubicNewtonMap(Map):
                     else:
                         break
                 z = z-1/dphi*(1-w/phi)
-            z_list.append(z)
+            z_list[i] = z
         return z_list
 
     def _calculate_ray(self,
@@ -407,7 +399,7 @@ class CubicNewtonMap(Map):
                        y_range: tuple = (-3, 3),
                        root: complex = 0,
                        angle: float = 0,
-                       res_ray: int = 2048,
+                       res_ray: int = 1024,
                        phi_iters: int = 128,
                        newt_iters: int = 256):
         w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
@@ -415,10 +407,6 @@ class CubicNewtonMap(Map):
         result_list = self._phi_newton(w_list,
                                        root,
                                        self.cubic.a,
-                                       self._f,
-                                       self._df,
-                                       self._q,
-                                       self._dq,
                                        phi_iters,
                                        newt_iters)
         result_list = np.fromiter(map(partial(self._psi_inv,
@@ -441,7 +429,7 @@ class CubicNewtonMap(Map):
                  angle: float = 0,
                  res_ray: int = 1024,
                  phi_iters: int = 128,
-                 newt_iters: int = 256,
+                 newt_iters: int = 128,
                  line_weight: int = 1):
         """
         Draw internal rays of the specified angle at all roots.
@@ -504,19 +492,15 @@ class CubicNewtonMap(Map):
                          y_range: tuple = (-3, 3),
                          root: complex = 0j,
                          potential: float = 1.0,
-                         res_eqpot: int = 2048,
+                         res_eqpot: int = 1024,
                          phi_iters: int = 128,
-                         newt_iters: int = 256):
+                         newt_iters: int = 128):
         w_list = np.array([cmath.rect(np.exp(potential), angle) for angle in
                            np.linspace(-np.pi, np.pi, res_eqpot+1,
                                        endpoint=False)])
         result_list = self._phi_newton(w_list,
                                        root,
                                        self.cubic.a,
-                                       self._f,
-                                       self._df,
-                                       self._q,
-                                       self._dq,
                                        phi_iters,
                                        newt_iters)
         result_list = np.fromiter(map(partial(self._psi_inv,
