@@ -3,6 +3,33 @@ from abc import ABC, abstractmethod
 import numpy as np
 from matplotlib import cm
 from PIL import Image
+from numba import jit
+
+
+@jit(nopython=True)
+def complex_to_pixel(z: complex,
+                     res_x: int = 600,
+                     res_y: int = 600,
+                     x_range: tuple = (-3, 3),
+                     y_range: tuple = (-3, 3)) -> tuple:
+    """
+    Convert a complex number into pixel coordinates.
+
+    Parameters
+    ----------
+    z : complex
+        The complex number to convert.
+    res_x: int
+        The horizontal resolution of the image.
+    res_y: int
+        The vertical resolution of the image.
+    x_range: (float, float)
+        The range of x values to consider.
+    y_range: (float, float)
+        The range of y values to consider.
+    """
+    return (round((z.real-x_range[0])/(x_range[1]-x_range[0])*(res_x-1)),
+            round((z.imag-y_range[1])/(y_range[0]-y_range[1])*(res_y-1)))
 
 
 def draw_from_array(array: np.ndarray, colormap: cm = cm.cubehelix_r) -> Image:

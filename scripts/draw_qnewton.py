@@ -1,5 +1,11 @@
 from julia import QuadraticMap, QuadraticNewtonMap
+import numpy as np
 
-quad_newt = QuadraticNewtonMap(QuadraticMap(c=1j))
-quad_newt.draw_rays(res_x=2048, res_y=2048, line_weight=10, multiples=11)
-quad_newt.draw_eqpots(res_x=2048, res_y=2048, line_weight=10)
+qnewt = QuadraticNewtonMap(QuadraticMap(c=1j))
+im = qnewt.draw_julia(res_x=600, res_y=600, x_range=(-2, 2), y_range=(-2, 2))
+im = qnewt.draw_ray(im=im, line_weight=4,
+                    x_range=(-2, 2), y_range=(-2, 2),
+                    angles=[0, -2*np.pi/3, 2*np.pi/3])
+im = qnewt.draw_eqpot(im=im, line_weight=2,
+                      x_range=(-2, 2), y_range=(-2, 2))
+im.show()

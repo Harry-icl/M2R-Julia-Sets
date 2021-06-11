@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 from matplotlib import cm
 from numbers import Number
 
-from .map import Map
+from .map import Map, complex_to_pixel
 
 
 class QuadraticMap(Map):
@@ -29,6 +29,10 @@ class QuadraticMap(Map):
             The term c in the quadratic map.
         """
         self.c = c
+        if c == 0:
+            self.roots = np.array([complex(0)])
+        else:
+            self.roots = np.array([cmath.sqrt(c)*1j, -cmath.sqrt(c)*1j])
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z**2 + self.c
@@ -283,19 +287,6 @@ class QuadraticNewtonMap(Map):
         else:
             return 1
 
-    @staticmethod
-    @jit(nopython=True)
-    def _escape_time_julia(z,
-                           c,
-                           iterations,
-                           z_max):
-        for i in range(iterations):
-            z = z - (2*z) / (z**2 + c)
-            if abs(z) > z_max:
-                return i / iterations
-        else:
-            return 1
-
     def _calculate_mandelbrot(self,
                               res_x: int = 600,
                               res_y: int = 600,
@@ -322,149 +313,252 @@ class QuadraticNewtonMap(Map):
 
         return results
 
+    @ staticmethod
+    @ jit(nopython=True)
+    def _conv_time_julia(z, c, roots, iterations, tol):
+        result = [0, 0, 0]
+        for i in range(iterations):
+            z -= (z**2 + c)/(2*z)
+            for j, r in enumerate(roots):
+                if abs(z-r) < tol:
+                    result[j] = int(255*(1-i/iterations))
+                    return result
+        return result
+
     def _calculate_julia(self,
                          res_x: int = 600,
                          res_y: int = 600,
                          iterations: int = 200,
-                         x_range: tuple = (-2, 2),
-                         y_range: tuple = (-2, 2),
-                         z_max: float = 2,
-                         multiprocessing: bool = False):
+                         x_range: tuple = (-3, 3),
+                         y_range: tuple = (-3, 3),
+                         tol: float = 1e-12,
+                         multiprocessing: bool = False) -> np.ndarray:
         num_list = [complex(x, y)
                     for y in np.linspace(y_range[0], y_range[1], res_y)
                     for x in np.linspace(x_range[0], x_range[1], res_x)]
-        pass
+        for i, r in enumerate(self.quadratic.roots):
+            for r_ in self.quadratic.roots[i+1:]:
+                tol = min(tol, abs(r-r_)/3)
+        if multiprocessing:
+            pool = mp.Pool(processes=mp.cpu_count())
+            result_list = pool.map(partial(self._conv_time_julia,
+                                           c=self.quadratic.c,
+                                           roots=self.quadratic.roots,
+                                           iterations=iterations,
+                                           tol=tol), num_list)
+            results = np.reshape(np.array(list(result_list), dtype=np.uint8),
+                                 (res_y, res_x, 3))
+        else:
+            result_list = map(partial(self._conv_time_julia,
+                                      c=self.quadratic.c,
+                                      roots=self.quadratic.roots,
+                                      iterations=iterations,
+                                      tol=tol), num_list)
+            results = np.reshape(np.array(list(result_list), dtype=np.uint8),
+                                 (res_y, res_x, 3))
+        return results
 
     def draw_julia(self,
                    res_x: int = 600,
                    res_y: int = 600,
+                   iterations: int = 32,
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
-                   line_weight: int = 1) -> Image.Image:
+                   tol: float = 1e-12,
+                   multiprocessing: bool = False) -> Image.Image:
         """
-        Draw a Julia set for the current map.
+        Draw the Julia set for this map with the current parameter values.
 
-        Docstring please
+        Parameters
+        ----------
+        res_x: int
+            The horizontal resolution of the image.
+        res_y: int
+            The vertical resolution of the image.
+        iterations: int
+            The maximum number of times to apply the map iteratively.
+        x_range: (float, float)
+            The range of x values to consider.
+        y_range: (float, float)
+            The range of y values to consider.
+        tol: float
+            The minimum distance before considering the orbit to have
+            converged.
+        multiprocessing: bool
+            Determines whether to use multiprocessing.
+
+
+        Returns
+        -------
+        im: Image.Image
+            The image of the Julia set as a Pillow image object.
         """
-        im = Image.fromarray(255*np.ones((res_x, res_y)))
-        if self.quadratic.c == 0:
-            return im
-        d = ImageDraw.Draw(im)
-        real = cmath.sqrt(self.quadratic.c).real
-        imag = cmath.sqrt(self.quadratic.c).imag
-        if abs(real) >= abs(imag):
-            d.line([0,
-                    round((x_range[0]*imag/real-y_range[1])
-                          / (y_range[0]-y_range[1])*(res_y-1)),
-                    res_x-1,
-                    round((x_range[1]*imag/real-y_range[1])
-                          / (y_range[0]-y_range[1])*(res_y-1))],
-                   fill=0,
-                   width=line_weight)
-        else:
-            d.line([round((y_range[1]*real/imag-x_range[0])
-                          / (x_range[1]-x_range[0])*(res_y-1)),
-                    0,
-                    round((y_range[0]*real/imag-x_range[0])
-                          / (x_range[1]-x_range[0])*(res_y-1)),
-                    res_y-1],
-                   fill=0,
-                   width=line_weight)
-        im.show()
-        return im
-
-    def _inv_bottcher(self, z: complex):
-        return 1j*cmath.sqrt(self.quadratic.c)*(z+1)/(z-1)
-
-    def _complex_to_pixel(self,
-                          z: complex,
-                          res_x: int = 600,
-                          res_y: int = 600,
-                          x_range: tuple = (-3, 3),
-                          y_range: tuple = (-3, 3)) -> tuple:
-        return (round((z.real-x_range[0])/(x_range[1]-x_range[0])*(res_x-1)),
-                round((z.imag-y_range[1])/(y_range[0]-y_range[1])*(res_y-1)))
-
-    def _calculate_rays(self,
-                        res_x: int = 600,
-                        res_y: int = 600,
-                        x_range: tuple = (-3, 3),
-                        y_range: tuple = (-3, 3),
-                        multiples: int = 12,
-                        res_ray: int = 1024):
-        return [[self._complex_to_pixel(
-            self._inv_bottcher(cmath.rect(1/np.cos(r), phi)),
-            res_x,
-            res_y,
-            x_range,
-            y_range
-        )
-            for r in np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
-            for phi in np.linspace(0, 2*np.pi, multiples+1)[:-1]]
-
-    def draw_rays(self,
-                  res_x: int = 600,
-                  res_y: int = 600,
-                  x_range: tuple = (-3, 3),
-                  y_range: tuple = (-3, 3),
-                  multiples: int = 12,
-                  res_ray: int = 1024,
-                  line_weight: int = 1) -> Image.Image:
-        """
-        Draw external rays.
-
-        Oskar - docstring please.
-        """
-        im = self.draw_julia(res_x, res_y, x_range, y_range, line_weight)
-        d = ImageDraw.Draw(im)
-        for ray in self._calculate_rays(res_x,
+        results = self._calculate_julia(res_x,
                                         res_y,
+                                        iterations,
                                         x_range,
                                         y_range,
-                                        multiples,
-                                        res_ray):
-            d.line(ray, fill=0, width=line_weight, joint="curve")
-        im.show()
+                                        tol,
+                                        multiprocessing)
+        im = Image.fromarray(results[::-1], 'RGB')
         return im
 
-    def _calculate_eqpots(self,
-                          res_x: int = 600,
-                          res_y: int = 600,
-                          x_range: tuple = (-3, 3),
-                          y_range: tuple = (-3, 3),
-                          levels: int = 12,
-                          res_eqpot: int = 1024):
-        return [[self._complex_to_pixel(
-            self._inv_bottcher(cmath.rect(1/np.cos(r), phi)),
-            res_x,
-            res_y,
-            x_range,
-            y_range
-        )
-            for phi in np.linspace(0, 2*np.pi, res_eqpot+1)[:-1]]
-            for r in np.linspace(0, np.pi/2, levels+2)[1:-1]]
+    @staticmethod
+    @jit(nopython=True)
+    def _phi_inv(w_list, roots):
+        z_list = np.zeros((w_list.shape[0]*len(roots), w_list.shape[1]),
+                          dtype=np.cdouble)
+        for root_idx, r in enumerate(roots):
+            for m, row in enumerate(w_list):
+                for n, w in enumerate(row):
+                    z_list[len(roots)*m+root_idx, n] = r*(w+1)/(w-1)
+        return z_list
 
-    def draw_eqpots(self,
-                    res_x: int = 600,
-                    res_y: int = 600,
-                    x_range: tuple = (-3, 3),
-                    y_range: tuple = (-3, 3),
-                    levels: int = 12,
-                    res_eqpot: int = 1024,
-                    line_weight: int = 1) -> Image.Image:
-        """
-        Draw an equipotential line.
+    def _calculate_ray(self,
+                       res_x: int = 600,
+                       res_y: int = 600,
+                       x_range: tuple = (-3, 3),
+                       y_range: tuple = (-3, 3),
+                       angles: list = [0.],
+                       res_ray: int = 1024):
+        w_list = np.array([[cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
+                          for angle in angles])
+        result_list = self._phi_inv(w_list,
+                                    self.quadratic.roots)
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
 
-        Oskar - docstring please.
+    def draw_ray(self,
+                 im: Image = None,
+                 res_x: int = 600,
+                 res_y: int = 600,
+                 x_range: tuple = (-3, 3),
+                 y_range: tuple = (-3, 3),
+                 angles: list = [0.],
+                 res_ray: int = 1024,
+                 line_weight: int = 1) -> Image.Image:
         """
-        im = Image.fromarray(255*np.ones((res_x, res_y)))
+        Draw internal rays of the specified angle at all roots.
+
+        Parameters
+        ----------
+        im: Image
+            The image on which to overla the rays. If None, the Julia set is
+            used.
+        res_x: int
+            The horizontal resolution of the image.
+        res_y: int
+            The vertical resolution of the image.
+        x_range: (float, float)
+            The range of x values to consider.
+        y_range: (float, float)
+            The range of y values to consider.
+        angles: list
+            The angles of the internal rays to be drawn.
+        res_ray: float
+            The resolution of the ray.
+        line_weight: int
+            The pixel width of the ray.
+
+        Returns
+        -------
+        im: Image.Image
+            The image of the internal rays as a Pillow image object.
+        """
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for eqpot in self._calculate_eqpots(res_x,
-                                            res_y,
-                                            x_range,
-                                            y_range,
-                                            levels,
-                                            res_eqpot):
-            d.line(eqpot, fill=0, width=line_weight, joint="curve")
-        im.show()
+        rays = self._calculate_ray(res_x=res_x,
+                                   res_y=res_y,
+                                   x_range=x_range,
+                                   y_range=y_range,
+                                   angles=angles,
+                                   res_ray=res_ray)
+        for ray in rays:
+            d.line(ray, fill=(255, 255, 255),
+                   width=line_weight, joint="curve")
+        return im
+
+    def _calculate_eqpot(self,
+                         res_x: int = 600,
+                         res_y: int = 600,
+                         x_range: tuple = (-3, 3),
+                         y_range: tuple = (-3, 3),
+                         potentials: float = 1.0,
+                         res_eqpot: int = 1024):
+        w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
+                           np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
+                          for potential in potentials])
+        result_list = self._phi_inv(w_list,
+                                    self.quadratic.roots)
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
+
+    def draw_eqpot(self,
+                   im: Image = None,
+                   res_x: int = 600,
+                   res_y: int = 600,
+                   x_range: tuple = (-3, 3),
+                   y_range: tuple = (-3, 3),
+                   potentials: float = [1.],
+                   res_eqpot: int = 1024,
+                   line_weight: int = 1) -> Image.Image:
+        """
+         Draw equipotential lines of the specified potential at all roots.
+
+         Parameters
+         ----------
+         im: Image
+             The image on which to overla the equipotentials. If None, the
+             Julia set is used.
+         res_x: int
+             The horizontal resolution of the image.
+         res_y: int
+             The vertical resolution of the image.
+         x_range: (float, float)
+             The range of x values to consider.
+         y_range: (float, float)
+             The range of y values to consider.
+         potentials: list
+             The potential of the line.
+         res_eqpot: float
+             The resolution of the equipotential line.
+         line_weight: int
+             The pixel width of the equipotental line.
+
+         Returns
+         -------
+         im: Image.Image
+             The image of the equipotential line as a Pillow image object.
+         """
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        eqpots = self._calculate_eqpot(res_x=res_x,
+                                       res_y=res_y,
+                                       x_range=x_range,
+                                       y_range=y_range,
+                                       potentials=potentials)
+        for eqpot in eqpots:
+            d.line(eqpot, fill=(255, 255, 255),
+                   width=line_weight, joint="curve")
         return im
