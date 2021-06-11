@@ -404,28 +404,33 @@ class QuadraticNewtonMap(Map):
 
     @staticmethod
     @jit(nopython=True)
-    def _phi_inv(z, r):
-        return r*(z+1)/(z-1)
+    def _phi_inv(w_list, roots):
+        z_list = np.zeros((w_list.shape[0]*len(roots), w_list.shape[1]),
+                          dtype=np.cdouble)
+        for root_idx, r in enumerate(roots):
+            for m, row in enumerate(w_list):
+                for n, w in enumerate(row):
+                    z_list[len(roots)*m+root_idx, n] = r*(w+1)/(w-1)
+        return z_list
 
     def _calculate_ray(self,
                        res_x: int = 600,
                        res_y: int = 600,
                        x_range: tuple = (-3, 3),
                        y_range: tuple = (-3, 3),
-                       root: float = 0,
-                       angle: float = 0,
+                       angles: list = [0.],
                        res_ray: int = 1024):
-        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                           np.linspace(0, np.pi/2, res_ray+1)[1:-1]])
-        result_list = np.fromiter(map(partial(self._phi_inv,
-                                              r=root), w_list),
-                                  dtype=complex)
-        return list(map(partial(complex_to_pixel,
-                                res_x=res_x,
-                                res_y=res_y,
-                                x_range=x_range,
-                                y_range=y_range),
-                        result_list))
+        w_list = np.array([[cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
+                          for angle in angles])
+        result_list = self._phi_inv(w_list,
+                                    self.quadratic.roots)
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
 
     def draw_ray(self,
                  im: Image = None,
@@ -433,7 +438,7 @@ class QuadraticNewtonMap(Map):
                  res_y: int = 600,
                  x_range: tuple = (-3, 3),
                  y_range: tuple = (-3, 3),
-                 angle: float = 0,
+                 angles: list = [0.],
                  res_ray: int = 1024,
                  line_weight: int = 1) -> Image.Image:
         """
@@ -452,8 +457,8 @@ class QuadraticNewtonMap(Map):
             The range of x values to consider.
         y_range: (float, float)
             The range of y values to consider.
-        angle: float
-            The angle of the ray.
+        angles: list
+            The angles of the internal rays to be drawn.
         res_ray: float
             The resolution of the ray.
         line_weight: int
@@ -472,14 +477,13 @@ class QuadraticNewtonMap(Map):
         else:
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for root in self.quadratic.roots:
-            ray = self._calculate_ray(res_x=res_x,
-                                      res_y=res_y,
-                                      x_range=x_range,
-                                      y_range=y_range,
-                                      root=root,
-                                      angle=angle,
-                                      res_ray=res_ray)
+        rays = self._calculate_ray(res_x=res_x,
+                                   res_y=res_y,
+                                   x_range=x_range,
+                                   y_range=y_range,
+                                   angles=angles,
+                                   res_ray=res_ray)
+        for ray in rays:
             d.line(ray, fill=(255, 255, 255),
                    width=line_weight, joint="curve")
         return im
@@ -489,21 +493,19 @@ class QuadraticNewtonMap(Map):
                          res_y: int = 600,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         root: complex = 0j,
-                         potential: float = 1.0,
+                         potentials: float = 1.0,
                          res_eqpot: int = 1024):
-        w_list = np.array([cmath.rect(np.exp(potential), angle) for angle in
-                           np.linspace(-np.pi, np.pi, res_eqpot+1,
-                                       endpoint=False)])
-        result_list = np.fromiter(map(partial(self._phi_inv,
-                                              r=root), w_list),
-                                  dtype=complex)
-        return list(map(partial(complex_to_pixel,
-                                res_x=res_x,
-                                res_y=res_y,
-                                x_range=x_range,
-                                y_range=y_range),
-                        result_list))
+        w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
+                           np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
+                          for potential in potentials])
+        result_list = self._phi_inv(w_list,
+                                    self.quadratic.roots)
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
 
     def draw_eqpot(self,
                    im: Image = None,
@@ -511,7 +513,7 @@ class QuadraticNewtonMap(Map):
                    res_y: int = 600,
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
-                   potential: float = 1.0,
+                   potentials: float = [1.],
                    res_eqpot: int = 1024,
                    line_weight: int = 1) -> Image.Image:
         """
@@ -530,7 +532,7 @@ class QuadraticNewtonMap(Map):
              The range of x values to consider.
          y_range: (float, float)
              The range of y values to consider.
-         potential: float
+         potentials: list
              The potential of the line.
          res_eqpot: float
              The resolution of the equipotential line.
@@ -550,14 +552,12 @@ class QuadraticNewtonMap(Map):
         else:
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for root in self.quadratic.roots:
-            ray = self._calculate_eqpot(res_x=res_x,
-                                        res_y=res_y,
-                                        x_range=x_range,
-                                        y_range=y_range,
-                                        root=root,
-                                        potential=potential,
-                                        res_eqpot=res_eqpot)
-            d.line(ray, fill=(255, 255, 255),
+        eqpots = self._calculate_eqpot(res_x=res_x,
+                                       res_y=res_y,
+                                       x_range=x_range,
+                                       y_range=y_range,
+                                       potentials=potentials)
+        for eqpot in eqpots:
+            d.line(eqpot, fill=(255, 255, 255),
                    width=line_weight, joint="curve")
         return im

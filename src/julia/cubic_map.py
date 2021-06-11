@@ -4,9 +4,8 @@ from functools import partial
 import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-from numba import jit, njit, prange
+from numba import jit
 from PIL import Image, ImageDraw
-from time import time
 
 from .map import Map, complex_to_pixel
 
@@ -330,7 +329,7 @@ class CubicNewtonMap(Map):
 
     @ staticmethod
     @jit(nopython=True)
-    def _phi_newton(w_list, roots, a, phi_iters, newt_iters):
+    def _phi_inv(w_list, roots, a, phi_iters, newt_iters):
         def _q(z, r):
             if r == 0:
                 return 1 + 3/(2*z**2)
@@ -363,7 +362,7 @@ class CubicNewtonMap(Map):
                 return cmath.sqrt(-a/2)/z
             return (3*r**2*z+3*r**2-a)/(3*r*z)
 
-        z_list = np.zeros((w_list.shape[0]*3, w_list.shape[1]),
+        z_list = np.zeros((w_list.shape[0]*len(roots), w_list.shape[1]),
                           dtype=np.cdouble)
         for root_idx, r in enumerate(roots):
             pow = 3. if r == 0 else 2.
@@ -394,7 +393,7 @@ class CubicNewtonMap(Map):
                         if abs(1/dphi*(1-w/phi)) < 1e-8:
                             break
                         z = z-1/dphi*(1-w/phi)
-                    z_list[3*m + root_idx, n] = _psi_inv(z, r)
+                    z_list[len(roots)*m+root_idx, n] = _psi_inv(z, r)
         return z_list
 
     def _calculate_ray(self,
@@ -403,18 +402,17 @@ class CubicNewtonMap(Map):
                        x_range: tuple = (-3, 3),
                        y_range: tuple = (-3, 3),
                        angles: list = [0.],
-                       multiples: int = 1,
                        res_ray: int = 1024,
                        phi_iters: int = 128,
                        newt_iters: int = 256):
         w_list = np.array([[cmath.rect(1/np.sin(r), angle) for r in
                           np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
                           for angle in angles])
-        result_list = self._phi_newton(w_list,
-                                       self.cubic.roots,
-                                       self.cubic.a,
-                                       phi_iters,
-                                       newt_iters)
+        result_list = self._phi_inv(w_list,
+                                    self.cubic.roots,
+                                    self.cubic.a,
+                                    phi_iters,
+                                    newt_iters)
         return map(list, list(map(partial(map, partial(complex_to_pixel,
                                                        res_x=res_x,
                                                        res_y=res_y,
@@ -498,11 +496,11 @@ class CubicNewtonMap(Map):
         w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
                            np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
                           for potential in potentials])
-        result_list = self._phi_newton(w_list,
-                                       self.cubic.roots,
-                                       self.cubic.a,
-                                       phi_iters,
-                                       newt_iters)
+        result_list = self._phi_inv(w_list,
+                                    self.cubic.roots,
+                                    self.cubic.a,
+                                    phi_iters,
+                                    newt_iters)
         return map(list, list(map(partial(map, partial(complex_to_pixel,
                                                        res_x=res_x,
                                                        res_y=res_y,
