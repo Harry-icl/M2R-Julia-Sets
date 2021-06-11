@@ -318,7 +318,7 @@ class QuadraticNewtonMap(Map):
     def _conv_time_julia(z, c, roots, iterations, tol):
         result = [0, 0, 0]
         for i in range(iterations):
-            z -= (z**2 + c)/(2*z)
+            z = z/2 if c == 0 else z - (z**2 + c)/(2*z)
             for j, r in enumerate(roots):
                 if abs(z-r) < tol:
                     result[j] = int(255*(1-i/iterations))

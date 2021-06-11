@@ -31,7 +31,10 @@ class CubicMap(Map):
         self.a = a
         self.b = b
 
-        if b == 0:
+        if a == b == 0:
+            self.roots = np.array([0])
+            return None
+        elif b == 0:
             self.roots = np.array([complex(0), cmath.sqrt(a), -cmath.sqrt(a)])
             return None
         elif a == 0:
@@ -239,7 +242,7 @@ class CubicNewtonMap(Map):
     def _conv_time_julia(z, a, b, roots, iterations, tol):
         result = [0, 0, 0]
         for i in range(iterations):
-            z -= (z**3 - a*z + b)/(3*z**2 - a)
+            z = 2*z/3 if a == b == 0 else z - (z**3 - a*z + b)/(3*z**2 - a)
             for j, r in enumerate(roots):
                 if abs(z-r) < tol:
                     result[j] = int(255*(1-i/iterations))
