@@ -107,7 +107,7 @@ class CubicWindows:
             y_range=self.y_range_m,
             multiprocessing=self.multiprocessing)
         self.open_cv_image_mandel = np.array(
-            self.pil_img_mandel.convert('RGB'))
+            self.pil_img_mandel.convert('RGB'))[:,:,::-1]
         cv2.imshow('mandel', self.open_cv_image_mandel)
         cv2.setWindowTitle('mandel', self._title_generator())
         self._draw_external_rays(self.external_rays_angles)
@@ -120,7 +120,7 @@ class CubicWindows:
             x_range=self.x_range_j,
             y_range=self.y_range_j,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))
+        self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
 
@@ -279,7 +279,7 @@ class CubicWindows:
                 self.y_range_j = Y_RANGEJ0
                 self._refresh_julia()
 
-            elif key == ord('e'):
+            elif key == ord('r'):
                 sg.theme('Material1')
                 layout = [
                     [sg.Text('Please enter the angle for the external ray as a'

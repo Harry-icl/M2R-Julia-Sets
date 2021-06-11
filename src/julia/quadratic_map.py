@@ -29,10 +29,13 @@ class QuadraticMap(Map):
             The term c in the quadratic map.
         """
         self.c = c
-        if c == 0:
-            self.roots = np.array([complex(0)])
+    
+    @property
+    def roots(self):
+        if self.c == 0:
+            return np.array([complex(0)])
         else:
-            self.roots = np.array([cmath.sqrt(c)*1j, -cmath.sqrt(c)*1j])
+            return np.array([cmath.sqrt(self.c)*1j, -cmath.sqrt(self.c)*1j])
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z**2 + self.c
@@ -281,7 +284,7 @@ class QuadraticNewtonMap(Map):
                                 z_max):
         z = c
         for i in range(iterations):
-            z = z - (2*z)/(z**2 + c)
+            z = z - (z**2 + c)/(2*z)
             if abs(z) > z_max:
                 return i / iterations
         else:

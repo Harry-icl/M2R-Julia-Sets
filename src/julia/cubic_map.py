@@ -30,22 +30,25 @@ class CubicMap(Map):
         """
         self.a = a
         self.b = b
-
-        if b == 0:
-            self.roots = np.array([complex(0), cmath.sqrt(a), -cmath.sqrt(a)])
+    
+    @property
+    def roots(self):
+        if self.b == 0:
+            cub_roots = np.array([complex(0), cmath.sqrt(self.a), -cmath.sqrt(self.a)])
             return None
-        elif a == 0:
-            gamma = complex((-b)**(1/3))
+        elif self.a == 0:
+            gamma = complex((-self.b)**(1/3))
         else:
-            gamma = (-b/2+cmath.sqrt(b**2/4-a**3/27))**(1/3)
+            gamma = (-self.b/2+cmath.sqrt(self.b**2/4-self.a**3/27))**(1/3)
         omega = cmath.rect(1, 2*np.pi/3)
         omega_ = cmath.rect(1, -2*np.pi/3)
-        self.roots = [gamma + a/(3*gamma)]
-        if np.all(~np.isclose(gamma*omega + a/(3*gamma)*omega_, self.roots)):
-            self.roots.append(gamma*omega + a/(3*gamma)*omega_)
-        if np.all(~np.isclose(gamma*omega_ + a/(3*gamma)*omega, self.roots)):
-            self.roots.append(gamma*omega_ + a/(3*gamma)*omega)
-        self.roots = np.array(self.roots)
+        cub_roots = [gamma + self.a/(3*gamma)]
+        if np.all(~np.isclose(gamma*omega + self.a/(3*gamma)*omega_, cub_roots)):
+            cub_roots.append(gamma*omega + self.a/(3*gamma)*omega_)
+        if np.all(~np.isclose(gamma*omega_ + self.a/(3*gamma)*omega, cub_roots)):
+            cub_roots.append(gamma*omega_ + self.a/(3*gamma)*omega)
+        cub_roots = np.array(cub_roots)
+        return cub_roots
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z**3 - self.a*z + self.b
@@ -53,8 +56,8 @@ class CubicMap(Map):
     def derivative(self, z: complex) -> complex:  # noqa D102
         return 3*z**2 - self.a
 
-    @ staticmethod
-    @ jit(nopython=True)
+    @staticmethod
+    @jit(nopython=True)
     def _escape_time_mandelbrot(b, a, c1, c2, iterations, z_max):
         z1 = c1
         z2 = c2
@@ -65,8 +68,8 @@ class CubicMap(Map):
             i += 1
         return i / iterations
 
-    @ staticmethod
-    @ jit(nopython=True)
+    @staticmethod
+    @jit(nopython=True)
     def _escape_time_julia(z, a, b, iterations, z_max):
         i = 0
         while i < iterations and abs(z) < z_max:
@@ -234,8 +237,8 @@ class CubicNewtonMap(Map):
                               multiprocessing: bool = False):
         raise NotImplementedError
 
-    @ staticmethod
-    @ jit(nopython=True)
+    @staticmethod
+    @jit(nopython=True)
     def _conv_time_julia(z, a, b, roots, iterations, tol):
         result = [0, 0, 0]
         for i in range(iterations):
