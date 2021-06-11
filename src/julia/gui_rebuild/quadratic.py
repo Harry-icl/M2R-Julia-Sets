@@ -239,10 +239,10 @@ class QuadraticWindows:
             pairs = zip(ray[:-1], ray[1:])
 
             for pair in pairs:
-                cv2.line(self.open_cv_image_mandel,
+                cv2.line(self.open_cv_image_mandel[:,:,::-1],
                          pair[0], pair[1],
                          color=RAY_COLOR, thickness=1)
-            cv2.imshow('mandel', self.open_cv_image_mandel)
+        cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_equipotentials(self, potentials):
         return NotImplementedError
