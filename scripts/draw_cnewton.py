@@ -1,10 +1,11 @@
 from julia import CubicMap, CubicNewtonMap
 import numpy as np
 
-qnewt = CubicNewtonMap(CubicMap(a=complex(2), b=complex(2)))
-im = qnewt.draw_julia(res_x=1440, res_y=1440, x_range=(-2, 2), y_range=(-2, 2))
-for angle in np.linspace(np.pi/2, 5*np.pi/2, 2, endpoint=False):
-    im = qnewt.draw_ray(im=im, angle=angle, line_weight=4,
-                        x_range=(-2, 2), y_range=(-2, 2))
-qnewt.draw_eqpot(im=im, line_weight=2,
-                 x_range=(-2, 2), y_range=(-2, 2)).show()
+cnewt = CubicNewtonMap(CubicMap(a=complex(1), b=complex(0)))
+im = cnewt.draw_julia(res_x=600, res_y=600, x_range=(-2, 2), y_range=(-2, 2))
+im = cnewt.draw_ray(im=im, line_weight=4,
+                    x_range=(-2, 2), y_range=(-2, 2),
+                    angles=[0, -2*np.pi/3, 2*np.pi/3])
+im = cnewt.draw_eqpot(im=im, line_weight=2,
+                      x_range=(-2, 2), y_range=(-2, 2))
+im.show()

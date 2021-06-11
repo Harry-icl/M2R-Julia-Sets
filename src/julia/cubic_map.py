@@ -4,8 +4,9 @@ from functools import partial
 import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-from numba import jit
+from numba import jit, njit, prange
 from PIL import Image, ImageDraw
+from time import time
 
 from .map import Map, complex_to_pixel
 
@@ -327,23 +328,16 @@ class CubicNewtonMap(Map):
         im = Image.fromarray(results[::-1], 'RGB')
         return im
 
-    @staticmethod
-    @jit(nopython=True)
-    def _psi_inv(z, r, a):
-        if r == 0:
-            return cmath.sqrt(-a/2)/z
-        return (3*r**2*z+3*r**2-a)/(3*r*z)
-
     @ staticmethod
-    @ jit(nopython=True)
-    def _phi_newton(w_list, r, a, phi_iters, newt_iters):
-        def _q(z):
+    @jit(nopython=True)
+    def _phi_newton(w_list, roots, a, phi_iters, newt_iters):
+        def _q(z, r):
             if r == 0:
                 return 1 + 3/(2*z**2)
             return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
                     / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
 
-        def _dq(z):
+        def _dq(z, r):
             if r == 0:
                 return -3/z**3
             return -6*(((18*r**4+3*a*r**2)*z**2
@@ -351,45 +345,56 @@ class CubicNewtonMap(Map):
                         + 9*r**4-6*a*r**2+a**2)
                        / ((9*r**2*z + 6*r**2 - 2*a)**2*z**2))
 
-        def _f(z):
+        def _f(z, r):
             if r == 0:
                 return z**3 + 3/2*z
             return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
                     / (9*r**2*z + 6*r**2 - 2*a))
 
-        def _df(z):
+        def _df(z, r):
             if r == 0:
                 return 3*z**2 + 3/2
             return (6*(9*r**2*z**2 + 9*r**2*z + 3*r**2 - a)
                     * (3*r**2*z + 3*r**2 - a)
                     / (9*r**2*z + 6*r**2 - 2*a)**2)
 
-        pow = 3.0 if r == 0 else 2.0
-        z = w_list[0]
-        z_list = np.zeros_like(w_list)
-        for i, w in enumerate(w_list):
-            for j in range(newt_iters):
-                phi = z * _q(z)**(1/pow)
-                dphi = 1/z + _dq(z)/(pow*_q(z))
-                prev_f = z
-                prev_df = complex(1)
-                for k in range(2, phi_iters):
-                    prev_df *= _df(prev_f)
-                    prev_f = _f(prev_f)
-                    factor = _q(prev_f)**(pow**-k)
-                    summand = ((pow**-k)*_dq(prev_f)
-                               / _q(prev_f)*prev_df)
-                    if not (cmath.isnan(factor) or cmath.isnan(summand)):
-                        phi *= factor
-                        dphi += summand
-                    elif not cmath.isnan(factor):
-                        phi *= factor
-                    elif not cmath.isnan(summand):
-                        dphi += summand
-                    else:
-                        break
-                z = z-1/dphi*(1-w/phi)
-            z_list[i] = z
+        def _psi_inv(z, r):
+            if r == 0:
+                return cmath.sqrt(-a/2)/z
+            return (3*r**2*z+3*r**2-a)/(3*r*z)
+
+        z_list = np.zeros((w_list.shape[0]*3, w_list.shape[1]),
+                          dtype=np.cdouble)
+        for root_idx, r in enumerate(roots):
+            pow = 3. if r == 0 else 2.
+            for m, row in enumerate(w_list):
+                z = row[0]
+                for n, w in enumerate(row):
+                    for j in range(newt_iters):
+                        phi = z * _q(z, r)**(1/pow)
+                        dphi = 1/z + _dq(z, r)/(pow*_q(z, r))
+                        prev_f = z
+                        prev_df = complex(1)
+                        for k in range(2, phi_iters):
+                            prev_df *= _df(prev_f, r)
+                            prev_f = _f(prev_f, r)
+                            factor = _q(prev_f, r)**(pow**-k)
+                            summand = ((pow**-k)*_dq(prev_f, r)
+                                       / _q(prev_f, r)*prev_df)
+                            if not (cmath.isnan(factor) or
+                                    cmath.isnan(summand)):
+                                phi *= factor
+                                dphi += summand
+                            elif not cmath.isnan(factor):
+                                phi *= factor
+                            elif not cmath.isnan(summand):
+                                dphi += summand
+                            else:
+                                break
+                        if abs(1/dphi*(1-w/phi)) < 1e-8:
+                            break
+                        z = z-1/dphi*(1-w/phi)
+                    z_list[3*m + root_idx, n] = _psi_inv(z, r)
         return z_list
 
     def _calculate_ray(self,
@@ -397,28 +402,25 @@ class CubicNewtonMap(Map):
                        res_y: int = 600,
                        x_range: tuple = (-3, 3),
                        y_range: tuple = (-3, 3),
-                       root: complex = 0,
-                       angle: float = 0,
+                       angles: list = [0.],
+                       multiples: int = 1,
                        res_ray: int = 1024,
                        phi_iters: int = 128,
                        newt_iters: int = 256):
-        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                           np.linspace(0, np.pi/2, res_ray+1)[1:-1]])
+        w_list = np.array([[cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
+                          for angle in angles])
         result_list = self._phi_newton(w_list,
-                                       root,
+                                       self.cubic.roots,
                                        self.cubic.a,
                                        phi_iters,
                                        newt_iters)
-        result_list = np.fromiter(map(partial(self._psi_inv,
-                                              r=root,
-                                              a=self.cubic.a), result_list),
-                                  dtype=complex)
-        return list(map(partial(complex_to_pixel,
-                                res_x=res_x,
-                                res_y=res_y,
-                                x_range=x_range,
-                                y_range=y_range),
-                        result_list))
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
 
     def draw_ray(self,
                  im: Image = None,
@@ -426,7 +428,7 @@ class CubicNewtonMap(Map):
                  res_y: int = 600,
                  x_range: tuple = (-3, 3),
                  y_range: tuple = (-3, 3),
-                 angle: float = 0,
+                 angles: list = [0.],
                  res_ray: int = 1024,
                  phi_iters: int = 128,
                  newt_iters: int = 128,
@@ -447,8 +449,8 @@ class CubicNewtonMap(Map):
             The range of x values to consider.
         y_range: (float, float)
             The range of y values to consider.
-        angle: float
-            The angle of the ray.
+        angles: list
+            The angles of the internal rays to be drawn.
         res_ray: float
             The resolution of the ray.
         phi_iters: int
@@ -471,16 +473,15 @@ class CubicNewtonMap(Map):
         else:
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for root in self.cubic.roots:
-            ray = self._calculate_ray(res_x=res_x,
-                                      res_y=res_y,
-                                      x_range=x_range,
-                                      y_range=y_range,
-                                      root=root,
-                                      angle=angle,
-                                      res_ray=res_ray,
-                                      phi_iters=phi_iters,
-                                      newt_iters=newt_iters)
+        rays = self._calculate_ray(res_x=res_x,
+                                   res_y=res_y,
+                                   x_range=x_range,
+                                   y_range=y_range,
+                                   angles=angles,
+                                   res_ray=res_ray,
+                                   phi_iters=phi_iters,
+                                   newt_iters=newt_iters)
+        for ray in rays:
             d.line(ray, fill=(255, 255, 255),
                    width=line_weight, joint="curve")
         return im
@@ -490,29 +491,24 @@ class CubicNewtonMap(Map):
                          res_y: int = 600,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
-                         root: complex = 0j,
-                         potential: float = 1.0,
+                         potentials: list = [1.],
                          res_eqpot: int = 1024,
                          phi_iters: int = 128,
                          newt_iters: int = 128):
-        w_list = np.array([cmath.rect(np.exp(potential), angle) for angle in
-                           np.linspace(-np.pi, np.pi, res_eqpot+1,
-                                       endpoint=False)])
+        w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
+                           np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
+                          for potential in potentials])
         result_list = self._phi_newton(w_list,
-                                       root,
+                                       self.cubic.roots,
                                        self.cubic.a,
                                        phi_iters,
                                        newt_iters)
-        result_list = np.fromiter(map(partial(self._psi_inv,
-                                              r=root,
-                                              a=self.cubic.a), result_list),
-                                  dtype=complex)
-        return list(map(partial(complex_to_pixel,
-                                res_x=res_x,
-                                res_y=res_y,
-                                x_range=x_range,
-                                y_range=y_range),
-                        result_list))
+        return map(list, list(map(partial(map, partial(complex_to_pixel,
+                                                       res_x=res_x,
+                                                       res_y=res_y,
+                                                       x_range=x_range,
+                                                       y_range=y_range)),
+                                  result_list)))
 
     def draw_eqpot(self,
                    im: Image = None,
@@ -520,7 +516,7 @@ class CubicNewtonMap(Map):
                    res_y: int = 600,
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
-                   potential: float = 1.0,
+                   potentials: float = [1.],
                    res_eqpot: int = 2048,
                    phi_iters: int = 128,
                    newt_iters: int = 256,
@@ -541,8 +537,8 @@ class CubicNewtonMap(Map):
              The range of x values to consider.
          y_range: (float, float)
              The range of y values to consider.
-         potential: float
-             The potential of the line.
+         potentials: list
+             The potentials of the lines to plot.
          res_eqpot: float
              The resolution of the equipotential line.
          phi_iters: int
@@ -565,16 +561,14 @@ class CubicNewtonMap(Map):
         else:
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        for root in self.cubic.roots:
-            ray = self._calculate_eqpot(res_x=res_x,
-                                        res_y=res_y,
-                                        x_range=x_range,
-                                        y_range=y_range,
-                                        root=root,
-                                        potential=potential,
-                                        res_eqpot=res_eqpot,
-                                        phi_iters=phi_iters,
-                                        newt_iters=newt_iters)
-            d.line(ray, fill=(255, 255, 255),
+        eqpots = self._calculate_eqpot(res_x=res_x,
+                                       res_y=res_y,
+                                       x_range=x_range,
+                                       y_range=y_range,
+                                       potentials=potentials,
+                                       phi_iters=phi_iters,
+                                       newt_iters=newt_iters)
+        for eqpot in eqpots:
+            d.line(eqpot, fill=(255, 255, 255),
                    width=line_weight, joint="curve")
         return im
