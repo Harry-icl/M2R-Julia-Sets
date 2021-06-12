@@ -256,6 +256,75 @@ class CubicMap(Map):
         d.line(ray, fill=(0, 0, 0),
                 width=line_weight, joint="curve")
         return im
+    @staticmethod
+    @jit(nopython=True)
+    def _f(z, a, b):
+        return z**3 - a*z + b
+        
+    @staticmethod
+    @jit(nopython=True)
+    def _bottcher(f, z, a, b, max_n=5):
+        total = 1
+        for n in range(1, max_n + 1):
+            f_n = z
+            for i in range(n-1):
+                f_n = f(f_n, a, b)
+            total *= (1 - a/(f_n**2) + b/(f_n**3))**(1/(3**n))
+        total = z * total
+        return total
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _potential(f, bottcher, z, a, b, max_n=5):
+        return math.log(abs(bottcher(f, z, a, b, max_n)))
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_equipotential(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+        results = np.zeros((res_x, res_y))
+        step_x = abs((x_range[1] - x_range[0])/res_x)
+        step_y = abs((y_range[1] - y_range[0])/res_y)
+        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
+            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+                c1 = complex(x, y)
+                c2 = complex(x + step_x, y)
+                c3 = complex(x, y + step_y)
+                c4 = complex(x + step_x, y + step_y)
+                pot1 = potential(f, bottcher, c1, a, b, max_n)
+                pot2 = potential(f, bottcher, c2, a, b, max_n)
+                pot3 = potential(f, bottcher, c3, a, b, max_n)
+                pot4 = potential(f, bottcher, c4, a, b, max_n)
+                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                    results[x_i, y_i] = 1
+        return results
+    
+    '''@staticmethod
+    @jit(nopython=True)
+    def _calculate_equipotential_complex(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+        results = []
+        step_x = abs((x_range[1] - x_range[0])/res_x)
+        step_y = abs((y_range[1] - y_range[0])/res_y)
+        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
+            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+                c1 = complex(x, y)
+                c2 = complex(x + step_x, y)
+                c3 = complex(x, y + step_y)
+                c4 = complex(x + step_x, y + step_y)
+                pot1 = potential(f, bottcher, c1, a, b, max_n)
+                pot2 = potential(f, bottcher, c2, a, b, max_n)
+                pot3 = potential(f, bottcher, c3, a, b, max_n)
+                pot4 = potential(f, bottcher, c4, a, b, max_n)
+                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                    results.append(c1)
+        return results'''
+    
+    def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5) -> Image.Image:
+
+        results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.a, self.b, equipotential, res_x, res_y, x_range, y_range, max_n)
+        results = np.rot90(results)
+        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
+        im.show()
+        return im
 
 
 
