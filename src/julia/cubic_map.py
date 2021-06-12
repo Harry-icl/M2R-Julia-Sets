@@ -330,7 +330,7 @@ class CubicNewtonMap(Map):
         return im
 
     @ staticmethod
-    @jit(nopython=True)
+    @ jit(nopython=True)
     def _phi_inv(w_list, roots, a, phi_iters, newt_iters):
         def _q(z, r):
             if r == 0:
@@ -492,11 +492,11 @@ class CubicNewtonMap(Map):
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
                          potentials: list = [1.],
-                         res_eqpot: int = 1024,
+                         res_eqpot: int = 2048,
                          phi_iters: int = 128,
                          newt_iters: int = 128):
         w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
-                           np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
+                           np.linspace(-np.pi, np.pi, res_eqpot+1)]
                           for potential in potentials])
         result_list = self._phi_inv(w_list,
                                     self.cubic.roots,
@@ -566,9 +566,9 @@ class CubicNewtonMap(Map):
                                        x_range=x_range,
                                        y_range=y_range,
                                        potentials=potentials,
+                                       res_eqpot=res_eqpot,
                                        phi_iters=phi_iters,
                                        newt_iters=newt_iters)
         for eqpot in eqpots:
-            d.line(eqpot, fill=(255, 255, 255),
-                   width=line_weight, joint="curve")
+            d.point(eqpot, fill=(255, 255, 255))
         return im
