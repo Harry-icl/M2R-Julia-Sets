@@ -298,7 +298,7 @@ class CubicMap(Map):
                     results[x_i, y_i] = 1
         return results
     
-    '''@staticmethod
+    @staticmethod
     @jit(nopython=True)
     def _calculate_equipotential_complex(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
         results = []
@@ -316,7 +316,7 @@ class CubicMap(Map):
                 pot4 = potential(f, bottcher, c4, a, b, max_n)
                 if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
                     results.append(c1)
-        return results'''
+        return results
     
     def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5) -> Image.Image:
 
