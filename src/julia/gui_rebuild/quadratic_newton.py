@@ -27,7 +27,7 @@ class QuadraticNewtonWindows:
         self.internal_rays_angles = []
         self.equipotentials = []
 
-        quadratic_map = QuadraticMap(c=1e-5)
+        quadratic_map = QuadraticMap(c=1)
         self.quadratic_newton = QuadraticNewtonMap(quadratic_map)
 
     def start(self):
