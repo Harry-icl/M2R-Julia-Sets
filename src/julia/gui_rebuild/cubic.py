@@ -1,7 +1,7 @@
 """Module containing the CubicWindows class."""
 import cv2
 import numpy as np
-from math import sqrt
+from math import sqrt, pi
 import PySimpleGUI as sg
 
 from julia.cubic_map import CubicMap
@@ -25,6 +25,7 @@ class CubicWindows:
         self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
 
         self.external_rays_angles = []
+        self.external_rays_angles_julia = []
         self.equipotentials = []
 
         self.cubic_map = CubicMap(a=0, b=0)
@@ -125,6 +126,7 @@ class CubicWindows:
         self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
+        self._draw_external_rays_julia(self.external_rays_angles_julia)
 
     def _click_event_mandel(self, event, x, y, flags, params):
         """Process mouse interaction via cv2."""
@@ -254,10 +256,24 @@ class CubicWindows:
             pairs = zip(ray[:-1], ray[1:])
 
             for pair in pairs:
-                cv2.line(self.open_cv_image_mandel,
+                cv2.line(self.open_cv_image_mandel[:,:,::-1],
                          pair[0], pair[1],
                          color=RAY_COLOR, thickness=1)
-            cv2.imshow('mandel', self.open_cv_image_mandel)
+        cv2.imshow('mandel', self.open_cv_image_mandel)
+    
+    def _draw_external_rays_julia(self, angles):
+        angles = [2*pi*angle for angle in angles]
+        for theta in angles:
+            print(f"Drawing external ray at {theta}*2pi radians...")
+            ray = [self._from_complex_j(z)
+                   for z in self.cubic_map.external_ray_julia(theta)]
+            pairs = zip(ray[:-1], ray[1:])
+
+            for pair in pairs:
+                cv2.line(self.open_cv_image_julia[:,:,::-1],
+                         pair[0], pair[1],
+                         color=RAY_COLOR, thickness=1)
+        cv2.imshow('julia', self.open_cv_image_julia)
         
     def _draw_equipotentials(self, potentials):
         return NotImplementedError
@@ -286,46 +302,108 @@ class CubicWindows:
 
             elif key == ord('r'):
                 layout = [
-                    [sg.Text('Please enter the angle for the external ray as a'
-                             ' multiple of 2pi (i.e. enter 1 to get 2pi radian'
-                             's).', size=(50, 2))],
-                    [sg.Text('Theta', size=(10, 1)),
-                     sg.InputText(size=(10, 1)),
-                     sg.Button('Draw Ray', size=(25, 1))],
-                    [sg.Text('Or enter the number of evenly-spaced rays you wo'
-                             'uld like to draw.', size=(50, 2))],
-                    [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
-                     sg.Button('Draw Rays', size=(25, 1))],
-                    [sg.Button('Remove all external rays', size=(22, 1)),
-                     sg.Cancel(size=(23, 1))]
+                    [sg.Text('Would you like to draw external rays on the mandelbrot or julia set?', size=(50, 2))],
+                    [sg.Button('Mandelbrot', size=(15, 1)),
+                     sg.Button('Julia', size=(15, 1)),
+                     sg.Cancel(size=(15, 1))]
                 ]
                 window = sg.Window('External rays', layout)
-                event, values = window.read()
+                event, _ = window.read()
                 window.close()
                 if event == sg.WIN_CLOSED or event == 'Cancel':
                     continue
-                elif event == 'Remove all external rays':
-                    print("Removing external rays...")
-                    self.external_rays_angles = []
-                    self._refresh_mandel()
-                if event == 'Draw Ray':
-                    try:
-                        theta = float(values[0])
-                    except(ValueError):
-                        print("Not a valid angle. Angles must be a float.")
+                elif event == 'Mandelbrot':
+                    layout = [
+                        [sg.Text('Please enter the angle for the external ray as a'
+                                'multiple of 2pi (i.e. enter 1 to get 2pi radians'
+                                ').', size=(50, 2))],
+                        [sg.Text('Theta', size=(10, 1)),
+                        sg.InputText(size=(10, 1)),
+                        sg.Button('Draw Ray', size=(25, 1))],
+                        [sg.Text('Or enter the number of evenly-spaced rays you wo'
+                                'uld like to draw.', size=(50, 2))],
+                        [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
+                        sg.Button('Draw Rays', size=(25, 1))],
+                        [sg.Button('Remove all external rays', size=(22, 1)),
+                        sg.Cancel(size=(23, 1))]
+                    ]
+                    window = sg.Window('External rays', layout)
+                    event, values = window.read()
+                    window.close()
+                    if event == sg.WIN_CLOSED or event == 'Cancel':
                         continue
-                    self.external_rays_angles += [theta]
-                    self._draw_external_rays([theta])
-                elif event == 'Draw Rays':
-                    try:
-                        count = int(values[1])
-                    except(ValueError):
-                        print("Not a valid number of rays. Number of rays must"
-                              " be an integer.")
+                    elif event == 'Remove all external rays':
+                        print("Removing external rays...")
+                        self.external_rays_angles = []
+                        self._refresh_mandel()
+                    if event == 'Draw Ray':
+                        try:
+                            theta = float(values[0])
+                        except(ValueError):
+                            print("Not a valid angle. Angles must be a float.")
+                            continue
+                        self.external_rays_angles += [theta]
+                        self._draw_external_rays([theta])
+                    elif event == 'Draw Rays':
+                        try:
+                            count = int(values[1])
+                        except(ValueError):
+                            print("Not a valid number of rays. Number of rays must"
+                                " be an integer.")
+                            continue
+                        if count < 1:
+                            print("Not a valid number of rays. Number of rays must"
+                                " be an integer.")
+                            continue
+                        theta_list = list(np.linspace(0, 1, count, endpoint=False))
+                        self.external_rays_angles += theta_list
+                        self._draw_external_rays(theta_list)
+                elif event == 'Julia':
+                    layout = [
+                        [sg.Text('Please enter the angle for the external ray as a'
+                                'multiple of 2pi (i.e. enter 1 to get 2pi radians'
+                                ').', size=(50, 2))],
+                        [sg.Text('Theta', size=(10, 1)),
+                        sg.InputText(size=(10, 1)),
+                        sg.Button('Draw Ray', size=(25, 1))],
+                        [sg.Text('Or enter the number of evenly-spaced rays you wo'
+                                'uld like to draw.', size=(50, 2))],
+                        [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
+                        sg.Button('Draw Rays', size=(25, 1))],
+                        [sg.Button('Remove all external rays', size=(22, 1)),
+                        sg.Cancel(size=(23, 1))]
+                    ]
+                    window = sg.Window('External rays', layout)
+                    event, values = window.read()
+                    window.close()
+                    if event == sg.WIN_CLOSED or event == 'Cancel':
                         continue
-                    theta_list = list(np.linspace(0, 1, count, endpoint=False))
-                    self.external_rays_angles += theta_list
-                    self._draw_external_rays(theta_list)
+                    elif event == 'Remove all external rays':
+                        print("Removing external rays...")
+                        self.external_rays_angles_julia = []
+                        self._refresh_julia()
+                    if event == 'Draw Ray':
+                        try:
+                            theta = float(values[0])
+                        except(ValueError):
+                            print("Not a valid angle. Angles must be a float.")
+                            continue
+                        self.external_rays_angles_julia += [theta]
+                        self._draw_external_rays_julia([theta])
+                    elif event == 'Draw Rays':
+                        try:
+                            count = int(values[1])
+                        except(ValueError):
+                            print("Not a valid number of rays. Number of rays must"
+                                " be an integer.")
+                            continue
+                        if count < 1:
+                            print("Not a valid number of rays. Number of rays must"
+                                " be an integer.")
+                            continue
+                        theta_list = list(np.linspace(0, 1, count, endpoint=False))
+                        self.external_rays_angles_julia += theta_list
+                        self._draw_external_rays_julia(theta_list)
 
             elif key == ord('e'):
                 layout = [

@@ -115,6 +115,7 @@ class QuadraticWindows:
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
         self._draw_external_rays_julia(self.external_rays_angles_julia)
+        self._draw_equipotentials(self.equipotentials)
 
     def _click_event_mandel(self, event, x, y, flags, params):
         """Process mouse interaction via cv2."""
@@ -261,7 +262,18 @@ class QuadraticWindows:
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
-        return NotImplementedError
+        for potential in potentials:
+            print(f"Drawing equipotential line at {potential}...")
+            equipotential_im = self.quadratic_map.draw_equipotential(
+                potential,
+                res_x=self.x_res_j,
+                res_y=self.y_res_j,
+                x_range=self.x_range_j,
+                y_range=self.y_range_j
+            )
+            open_cv_equi_im = np.array(equipotential_im.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia, open_cv_equi_im)
+        cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
         while True:
@@ -418,6 +430,7 @@ class QuadraticWindows:
                         potential = float(values[0])
                     except(ValueError):
                         print('Not a valid potential. Potentials must be a float')
+                        continue
                     self.equipotentials += [potential]
                     self._draw_equipotentials([potential])
                 elif event == 'Draw Equipotentials':

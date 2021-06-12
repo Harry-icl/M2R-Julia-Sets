@@ -199,6 +199,24 @@ class CubicMap(Map):
             z_list.append(z)
         return z_list
 
+    def external_ray_julia(self,
+                     angle: float = 0,
+                     res_ray: int = 2048,
+                     phi_iters: int = 128,
+                     newt_iters: int = 256):
+        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+        result_list = self._phi_newton(w_list,
+                                       self.a,
+                                       self.b,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        return result_list
+
     def _calculate_ray(self,
                        res_x: int = 600,
                        res_y: int = 600,

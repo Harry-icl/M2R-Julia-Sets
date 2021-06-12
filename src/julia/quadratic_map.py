@@ -197,16 +197,18 @@ class QuadraticMap(Map):
         return new_result 
 
 
-    def external_ray_julia(self, theta, D=50, R=50, error=0.01):
-        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
-        for i in range(2, D):
-                point = points[-1]
-                point = self.newton_map_julia(point, i, R, theta, error)
-                points.append(point)
-                #print(point)
-        #points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
-        points
-        return points
+    def external_ray_julia(self, angle, res_ray=1024, phi_iters=128, newt_iters=256):
+        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+        result_list = self._phi_newton(w_list,
+                                       self.c,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        return result_list
 
     '''def external_ray_julia(self, theta, D=50, R=200, error=0.0001):
         results = []
@@ -382,8 +384,8 @@ class QuadraticMap(Map):
         results = []
         step_x = abs((x_range[1] - x_range[0])/res_x)
         step_y = abs((y_range[1] - y_range[0])/res_y)
-        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+        for x in np.linspace(x_range[0], x_range[1], res_x):
+            for y in np.linspace(y_range[0], y_range[1], res_y):
                 c1 = complex(x, y)
                 c2 = complex(x + step_x, y)
                 c3 = complex(x, y + step_y)
@@ -401,7 +403,6 @@ class QuadraticMap(Map):
         results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.c, equipotential, res_x, res_y, x_range, y_range, max_n)
         results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
-        im.show()
         return im
 
 
