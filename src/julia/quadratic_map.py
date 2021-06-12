@@ -118,7 +118,7 @@ class QuadraticMap(Map):
 
         return results
 
-    def external_ray(self, theta, D=20, S=10, R=200, error=0.001):
+    def external_ray(self, theta, D=50, S=20, R=200, error=0.1):
         """
         Construct an array of points on the external ray of angle theta.
 
@@ -136,16 +136,12 @@ class QuadraticMap(Map):
             error used for convergence of newton method
         """
         points = [R * cmath.exp(2 * np.pi * theta * 1j)]
-
-        for i in range(1, D+1):
+        for i in range(1, D + 1):
             for q in range(1, S + 1):
-
                 r_m = R ** (1 / (2 ** (i - 1 + q / S)))
-                t_m = r_m**(2**(i)) * cmath.exp(2 *
-                                                np.pi * 1j * theta * 2**(i))
+                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 2**(i))
                 c_next = points[-1]
                 c_previous = 0
-
                 while abs(c_previous - c_next) >= error:
                     C_k = c_next
                     D_k = 1
@@ -154,107 +150,257 @@ class QuadraticMap(Map):
                         C_k = C_k ** 2 + c_next
                     c_previous = c_next
                     c_next = c_previous - (C_k - t_m) / D_k
-
                 points.append(c_next)
-
-        # filter to be in range [-2,2]
-        points = filter(lambda x: abs(x.real) < 2 and abs(x.imag) < 2, points)
-
+        points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
         return points
 
-    def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
-        """Draw external ray."""
+    def draw_ray(self, theta, D=50, S=20, R=200, error=0.001):
+
         results = self.external_ray(theta, D, S, R, error)
         results = [[i.real, i.imag] for i in results]
         x = [x[0] for x in results]
         y = [x[1] for x in results]
         plt.plot(x, y)
         plt.show()
-
-    def bottcher(self, c, n=5):
-        """
-        Find the Bottcher coordinate of point c.
-
-        Parameters
-        ----------
-        c: complex
-            point whose Bottcher coordinate we want
-        n:
-            precision of the Bottcher function
-        """
-        result = c
-        for i in range(n - 1):
+    
+    def composition(self, z, iters):
+        result = z
+        for i in range(iters):
             result = self.__call__(result)
-        result = 1 + c / (result ** 2)
-        interim_result = result
-        for j in range(n):
-            result *= interim_result ** (1/(2**j))
-        result = c * result
         return result
 
-    def potential(self, c, n=5):
-        """
-        Find the Bottcher potential of point c.
+    def newton_map_julia(self, z, n, R, theta, error=0.001):
+        new_result = z
+        old_result = 0
+        C_k = z
+        D_k = 1
+        for j in range(n):
+            D_k = 2*D_k*C_k
+            C_k = C_k**2 + self.c
+        print(C_k, D_k)
+        while abs(old_result - new_result) >= error:
+            old_result = new_result
+            new_result = old_result - (C_k - R*cmath.exp(2 * np.pi * 1j * theta * 2**n))/D_k 
+            #print(new_result)
+        return new_result
 
-        Parameters
-        ----------
-        c: complex
-            point whose Bottcher potential we want
-        n:
-            precision of the Bottcher function
-        """
-        return math.log(abs(self.bottcher(c, n)))
+    def newton_map_julia_log(self, z, n, R, theta, error=0.001):
+        new_result = z
+        old_result = 0
+        while abs(old_result - new_result) >= error:
+            old_result = new_result
+            fn_prime = 2 * old_result
+            for j in range(2, n+1):  
+                fn_prime *= 2 * self.composition(old_result, j)
+            #print(fn_prime,self.composition(old_result, n), R*cmath.exp(2 * np.pi * 1j * theta * 2**n))
+            new_result = old_result - (((cmath.log(self.composition(old_result, n)) - cmath.log(R) - 1j * np.pi * theta))*self.composition(old_result,n))/(fn_prime)
+            new_result = cmath.log(new_result) 
+        return new_result 
 
-    def calculate_equipotential(self,
-                                equipotential,
-                                res_x=600,
-                                res_y=600,
-                                x_range=(-3, 3),
-                                y_range=(-3, 3),
-                                n=5,
-                                tol=10**(-6)):
-        """
-        Calculate equipotential curve.
 
-        Parameters
-        ----------
-        equipotential: float
-            target potential value
-        n:
-            precision of the Bottcher function
-        tol:
-            tolerance of isclose approximation
-        """
-        results = np.ones((res_x, res_y))
+    def external_ray_julia(self, theta, D=50, R=50, error=0.01):
+        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
+        for i in range(2, D):
+                point = points[-1]
+                point = self.newton_map_julia(point, i, R, theta, error)
+                points.append(point)
+                #print(point)
+        #points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
+        points
+        return points
 
+    '''def external_ray_julia(self, theta, D=50, R=200, error=0.0001):
+        results = []
+        list_points = [((1/(2**i))*cmath.log(R) + 2 * np.pi * theta * 1j) for i in range(D)]
+        for i in range(D):
+            result = list_points[i]
+            result = self.newton_map_julia_log(result, i, R, theta, error)  # i or i+2
+            results.append(result)
+        results = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, results)
+        return results'''
+
+    def draw_ray_julia(self, theta, D=50, R=50, error=0.001):
+
+        results = self.external_ray_julia(theta, D, R, error)
+        results = [[i.real, i.imag] for i in results]
+        x = [x[0] for x in results]
+        y = [x[1] for x in results]
+        plt.plot(x, y)
+        plt.show()
+
+    @staticmethod
+    @jit(nopython=True)
+    def _q(z, c):
+        return 1 + c/(z**2)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _dq(z, c):
+        return -2*c/(z**3)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _f(z, c):
+        return z**2+c
+
+    @ staticmethod
+    @ jit(nopython=True)
+    def _df(z):
+        return 2*z
+
+    @ staticmethod
+    @ jit(nopython=False) 
+    def _phi_newton(w_list, c, f, df, q, dq, phi_iters, newt_iters):
+        z = w_list[0]
+        z_list = []
+        for w in w_list:
+            for i in range(newt_iters):
+                phi = z * q(z, c)**(1.0/2.0) 
+                dphi = 1/z + dq(z, c)/(2*q(z, c))
+                prev_f = z
+                prev_df = complex(1)
+                for k in range(2, phi_iters):
+                    prev_df *= df(prev_f)
+                    prev_f = f(prev_f, c)
+                    factor = q(prev_f, c)**(2.0**-k)
+                    summand = ((2.0**-k)*dq(prev_f, c)
+                               / q(prev_f, c)*prev_df)
+                    if not (cmath.isnan(factor) or cmath.isnan(summand)):
+                        phi *= factor
+                        dphi += summand
+                    elif not cmath.isnan(factor):
+                        phi *= factor
+                    elif not cmath.isnan(summand):
+                        dphi += summand
+                    else:
+                        break
+                z = z-1/dphi*(1-w/phi)
+            z_list.append(z)
+        return z_list
+
+    def _calculate_ray(self,
+                       res_x: int = 600,
+                       res_y: int = 600,
+                       x_range: tuple = (-3, 3),
+                       y_range: tuple = (-3, 3),
+                       angle: float = 0,
+                       res_ray: int = 2048,
+                       phi_iters: int = 128,
+                       newt_iters: int = 256):
+        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+        result_list = self._phi_newton(w_list,
+                                       self.c,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        return list(map(partial(complex_to_pixel,
+                                res_x=res_x,
+                                res_y=res_y,
+                                x_range=x_range,
+                                y_range=y_range),
+                        result_list))
+
+    def draw_ray(self,
+                 im: Image = None,
+                 res_x: int = 600,
+                 res_y: int = 600,
+                 x_range: tuple = (-3, 3),
+                 y_range: tuple = (-3, 3),
+                 angle: float = 0,
+                 res_ray: int = 1024,
+                 phi_iters: int = 128,
+                 newt_iters: int = 256,
+                 line_weight: int = 1):
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        ray = self._calculate_ray(res_x=res_x,
+                                    res_y=res_y,
+                                    x_range=x_range,
+                                    y_range=y_range,
+                                    angle=angle,
+                                    res_ray=res_ray,
+                                    phi_iters=phi_iters,
+                                    newt_iters=newt_iters)
+        d.line(ray, fill=(0, 0, 0),
+                width=line_weight, joint="curve")
+        return im
+
+    @staticmethod
+    @jit(nopython=True)
+    def _f(z, c):
+        return z**2 + c
+        
+    @staticmethod
+    @jit(nopython=True)
+    def _bottcher(f, z, c, max_n=5):
+        total = 1
+        for n in range(1, max_n + 1):
+            f_n = z
+            for i in range(n):
+                f_n = f(f_n, c)
+            total *= (f_n/(f_n - c))**(1/(2**n))
+        total = z * total
+        return total
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _potential(f, bottcher, z, c, max_n=5):
+        return math.log(abs(bottcher(f, z, c, max_n)))
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_equipotential(f, bottcher, potential, c, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+        results = np.zeros((res_x, res_y))
+        step_x = abs((x_range[1] - x_range[0])/res_x)
+        step_y = abs((y_range[1] - y_range[0])/res_y)
         for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0],
-                                                y_range[1],
-                                                res_y)):
-                c = complex(x, y)
-                pot = self.potential(c, n)
-                # math.isclose(pot, equipotential, rel_tol=tol):
-                if pot in [equipotential - x_range[0]/res_x,
-                           equipotential + x_range[0]/res_x]:
-                    results[x_i, y_i] = 0
-
+            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+                c1 = complex(x, y)
+                c2 = complex(x + step_x, y)
+                c3 = complex(x, y + step_y)
+                c4 = complex(x + step_x, y + step_y)
+                pot1 = potential(f, bottcher, c1, c, max_n)
+                pot2 = potential(f, bottcher, c2, c, max_n)
+                pot3 = potential(f, bottcher, c3, c, max_n)
+                pot4 = potential(f, bottcher, c4, c, max_n)
+                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                    results[x_i, y_i] = 1
         return results
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _calculate_equipotential_complex(f, bottcher, potential, c, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+        results = []
+        step_x = abs((x_range[1] - x_range[0])/res_x)
+        step_y = abs((y_range[1] - y_range[0])/res_y)
+        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
+            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+                c1 = complex(x, y)
+                c2 = complex(x + step_x, y)
+                c3 = complex(x, y + step_y)
+                c4 = complex(x + step_x, y + step_y)
+                pot1 = potential(f, bottcher, c1, c, max_n)
+                pot2 = potential(f, bottcher, c2, c, max_n)
+                pot3 = potential(f, bottcher, c3, c, max_n)
+                pot4 = potential(f, bottcher, c4, c, max_n)
+                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                    results.append(c1)
+        return results
+    
+    def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5) -> Image.Image:
 
-    def draw_equipotential(self,
-                           equipotential,
-                           res_x=600,
-                           res_y=600,
-                           x_range=(-3, 3),
-                           y_range=(-3, 3),
-                           n=5,
-                           tol=10**(-6)) -> Image.Image:
-        """
-        Draw equipotential lines.
-
-        Add docstring please.
-        """
-        results = self.calculate_equipotential(
-            equipotential, res_x, res_y, x_range, y_range, n, tol)
+        results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.c, equipotential, res_x, res_y, x_range, y_range, max_n)
+        results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         im.show()
         return im

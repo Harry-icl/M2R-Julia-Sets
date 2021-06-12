@@ -5,6 +5,8 @@ import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from numba import jit
+import math
+from matplotlib import cm
 from numbers import Number
 from PIL import Image, ImageDraw
 
@@ -146,68 +148,115 @@ class CubicMap(Map):
                                  (res_y, res_x))
 
         return results
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _q(z, a, b):
+        return 1 - a/(z**2) + b/(z**3)
 
-    def external_ray(self, theta, D=20, S=10, R=200, error=0.001):
-        """
-        Construct an array of points on the external ray of angle theta.
+    @staticmethod
+    @jit(nopython=True)
+    def _dq(z, a, b):
+        return 2*a/(z**3) - 3*b/(z**4)
 
-        Parameters
-        ----------
-        theta: float
-            angle of the external ray
-        D: int
-            depth of the ray
-        S: int
-            sharpness of the ray
-        R: int
-            radius
-        error: float
-            error used for convergence of newton method
-        """
-        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
+    @staticmethod
+    @jit(nopython=True)
+    def _f(z, a, b):
+        return z**3 - a*z + b
 
-        for i in range(1, D+1):
-            for q in range(1, S+1):
+    @ staticmethod
+    @ jit(nopython=True)
+    def _df(z, a):
+        return 3*z**2 - a
 
-                r_m = R ** (1 / (3 ** (i - 1 + q / S)))
-                t_m = r_m**(3**(i)) * cmath.exp(2
-                                                * np.pi
-                                                * 1j
-                                                * theta
-                                                * 3**(i))
-                b_next = points[-1]
-                b_previous = 0
+    @ staticmethod
+    @ jit(nopython=False) 
+    def _phi_newton(w_list, a, b, f, df, q, dq, phi_iters, newt_iters):
+        z = w_list[0]
+        z_list = []
+        for w in w_list:
+            for i in range(newt_iters):
+                phi = z * q(z, a, b)**(1.0/3.0) 
+                dphi = 1/z + dq(z, a, b)/(3*q(z, a, b))
+                prev_f = z
+                prev_df = complex(1)
+                for k in range(2, phi_iters):
+                    prev_df *= df(prev_f, a)
+                    prev_f = f(prev_f, a, b)
+                    factor = q(prev_f, a, b)**(3.0**-k)
+                    summand = ((3.0**-k)*dq(prev_f, a, b)
+                               / q(prev_f, a, b)*prev_df)
+                    if not (cmath.isnan(factor) or cmath.isnan(summand)):
+                        phi *= factor
+                        dphi += summand
+                    elif not cmath.isnan(factor):
+                        phi *= factor
+                    elif not cmath.isnan(summand):
+                        dphi += summand
+                    else:
+                        break
+                z = z-1/dphi*(1-w/phi)
+            z_list.append(z)
+        return z_list
 
-                while abs(b_previous - b_next) >= error:
-                    C_k = b_next
-                    D_k = [0, -self.a + 1]
-                    for x in range(i):
-                        D_k.append(3 * D_k[-1] * C_k ** 2
-                                   - self.a * D_k[-2] + 1)
-                        C_k = C_k ** 3 - self.a * C_k + b_next
-                    b_previous = b_next
-                    b_next = b_previous - (C_k - t_m) / D_k[-1]
+    def _calculate_ray(self,
+                       res_x: int = 600,
+                       res_y: int = 600,
+                       x_range: tuple = (-3, 3),
+                       y_range: tuple = (-3, 3),
+                       angle: float = 0,
+                       res_ray: int = 2048,
+                       phi_iters: int = 128,
+                       newt_iters: int = 256):
+        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
+                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+        result_list = self._phi_newton(w_list,
+                                       self.a,
+                                       self.b,
+                                       self._f,
+                                       self._df,
+                                       self._q,
+                                       self._dq,
+                                       phi_iters,
+                                       newt_iters)
+        return list(map(partial(complex_to_pixel,
+                                res_x=res_x,
+                                res_y=res_y,
+                                x_range=x_range,
+                                y_range=y_range),
+                        result_list))
 
-                points.append(b_next)
+    def draw_ray(self,
+                 im: Image = None,
+                 res_x: int = 600,
+                 res_y: int = 600,
+                 x_range: tuple = (-3, 3),
+                 y_range: tuple = (-3, 3),
+                 angle: float = 0,
+                 res_ray: int = 1024,
+                 phi_iters: int = 128,
+                 newt_iters: int = 256,
+                 line_weight: int = 1):
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        ray = self._calculate_ray(res_x=res_x,
+                                    res_y=res_y,
+                                    x_range=x_range,
+                                    y_range=y_range,
+                                    angle=angle,
+                                    res_ray=res_ray,
+                                    phi_iters=phi_iters,
+                                    newt_iters=newt_iters)
+        d.line(ray, fill=(0, 0, 0),
+                width=line_weight, joint="curve")
+        return im
 
-        # filter to be in range [-2,2]
-        points = filter(lambda x: abs(x.real) < 2 and abs(x.imag) < 2, points)
-
-        return points
-
-    def draw_ray(self, theta, D=20, S=10, R=50, error=0.1):
-        """
-        Draw an external ray on matplotlib.
-
-        Oskar - can you add some more description to this docstring, as well as
-        types for the parameters.
-        """
-        results = self.external_ray(theta, D, S, R, error)
-        results = [[i.real, i.imag] for i in results]
-        x = [x[0] for x in results]
-        y = [x[1] for x in results]
-        plt.plot(x, y)
-        plt.show()
 
 
 class CubicNewtonMap(Map):
