@@ -177,7 +177,6 @@ class QuadraticMap(Map):
         for j in range(n):
             D_k = 2*D_k*C_k
             C_k = C_k**2 + self.c
-        print(C_k, D_k)
         while abs(old_result - new_result) >= error:
             old_result = new_result
             new_result = old_result - (C_k - R*cmath.exp(2 * np.pi * 1j * theta * 2**n))/D_k 
