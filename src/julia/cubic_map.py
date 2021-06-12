@@ -486,6 +486,52 @@ class CubicNewtonMap(Map):
                    width=line_weight, joint="curve")
         return im
 
+    @staticmethod
+    @jit(nopython=True)
+    def _eqpot_points(sample_list,
+                      x_space,
+                      y_space,
+                      roots,
+                      a,
+                      potentials,
+                      phi_iters):
+        def _q(z, r):
+            if r == 0:
+                return 1 + 3/(2*z**2)
+            return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
+                    / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
+
+        def _f(z, r):
+            if r == 0:
+                return z**3 + 3/2*z
+            return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
+                    / (9*r**2*z + 6*r**2 - 2*a))
+
+        def psi(z, r):
+            if r == 0:
+                return cmath.sqrt(-a/2)/z
+            return (3*r**2 - a)/(3*r*z - 3*r**2)
+
+        z_list = [False for i in enumerate(sample_list)]
+        pots = [0., 0., 0., 0.]
+        for root_idx, r in enumerate(roots):
+            pow = 3. if r == 0 else 2.
+            for j, z in enumerate(sample_list):
+                z = psi(z, r)
+                phi = z * _q(z, r)**(1/pow)
+                prev_f = z
+                for k in range(2, phi_iters):
+                    prev_f = _f(prev_f, r)
+                    factor = _q(prev_f, r)**(pow**-k)
+                    if cmath.isnan(factor) or abs(factor) <= 1e-8:
+                        break
+                    phi *= factor
+                for pot in potentials:
+                    if abs(np.log(abs(phi)) - pot) <= 8*min(x_space, y_space):
+                        z_list[j] = True
+                        break
+        return z_list
+
     def _calculate_eqpot(self,
                          res_x: int = 600,
                          res_y: int = 600,
