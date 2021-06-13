@@ -1,8 +1,4 @@
 """Interactive GUI."""
-from julia.cubic_map import CubicNewtonMap
-from julia.gui_rebuild import quadratic_newton
-
-
 if __name__ == "__main__":
     import argparse
 
@@ -26,17 +22,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.newton and args.cubic:
         from .gui_rebuild import CubicNewtonWindows
-        cubic_newton_gui = CubicNewtonWindows(multiprocessing=args.multiprocessing)
+        cubic_newton_gui = CubicNewtonWindows(
+            multiprocessing=args.multiprocessing)
         cubic_newton_gui.start()
     elif args.newton:
         from .gui_rebuild import QuadraticNewtonWindows
-        quadratic_newton_gui = QuadraticNewtonWindows(multiprocessing=args.multiprocessing)
+        quadratic_newton_gui = QuadraticNewtonWindows(
+            multiprocessing=args.multiprocessing)
         quadratic_newton_gui.start()
     elif args.cubic:
         from .gui_rebuild import CubicWindows
-        cubic_gui = CubicWindows(multiprocessing=args.multiprocessing, preimages=args.preimages)
+        cubic_gui = CubicWindows(multiprocessing=args.multiprocessing,
+                                 preimages=args.preimages)
         cubic_gui.start()
     else:
         from .gui_rebuild import QuadraticWindows
-        quadratic_gui = QuadraticWindows(multiprocessing=args.multiprocessing, preimages=args.preimages)
+        quadratic_gui = QuadraticWindows(multiprocessing=args.multiprocessing,
+                                         preimages=args.preimages)
         quadratic_gui.start()

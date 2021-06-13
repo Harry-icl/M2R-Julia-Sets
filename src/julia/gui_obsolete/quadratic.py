@@ -289,11 +289,15 @@ def main_quadratic(multiprocessing: bool = False):
                 [sg.Text('Please enter the angle for the external ray as a mu'
                          'ltiple of 2pi (i.e. enter 1 to get 2pi radians).',
                          size=(50, 2))],
-                [sg.Text('Theta', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Ray', size=(25, 1))],
+                [sg.Text('Theta', size=(10, 1)), sg.InputText(size=(10, 1)),
+                 sg.Button('Draw Ray', size=(25, 1))],
                 [sg.Text('Or enter the number of evenly-spaced rays you would '
                          'like to draw.', size=(50, 2))],
-                [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)), sg.Button('Draw Rays', size=(25, 1))],
-                [sg.Button('Remove all external rays', size=(22, 1)), sg.Cancel(size=(23, 1))]
+                [sg.Text('Rays', size=(10, 1)),
+                 sg.InputText(size=(10, 1)),
+                 sg.Button('Draw Rays', size=(25, 1))],
+                [sg.Button('Remove all external rays', size=(22, 1)),
+                 sg.Cancel(size=(23, 1))]
             ]
             window = sg.Window('External rays', layout)
             event, values = window.read()
@@ -326,7 +330,8 @@ def main_quadratic(multiprocessing: bool = False):
                 try:
                     count = int(values[1])
                 except(ValueError):
-                    print("Not a valid number of rays. Number of rays must be an integer.")
+                    print("Not a valid number of rays. Number of rays must be "
+                          "an integer.")
                     continue
                 theta_list = list(np.linspace(0, 1, count))
                 external_rays_angles += theta_list

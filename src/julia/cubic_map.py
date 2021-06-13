@@ -332,17 +332,24 @@ class CubicMap(Map):
                 pot2 = potential(f, bottcher, c2, a, b, max_n)
                 pot3 = potential(f, bottcher, c3, a, b, max_n)
                 pot4 = potential(f, bottcher, c4, a, b, max_n)
-                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                if (min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4)):
                     results.append(c1)
         return results
-    
-    def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5) -> Image.Image:
 
-        results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.a, self.b, equipotential, res_x, res_y, x_range, y_range, max_n)
+    def draw_equipotential(self, equipotential, res_x=600, res_y=600,
+                           x_range=(-3, 3), y_range=(-3, 3),
+                           max_n=5) -> Image.Image:
+        """Docstring."""
+        results = self._calculate_equipotential(self._f, self._bottcher,
+                                                self._potential,
+                                                self.a, self.b,
+                                                equipotential,
+                                                res_x, res_y,
+                                                x_range, y_range,
+                                                max_n)
         results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         return im
-
 
 
 class CubicNewtonMap(Map):
@@ -657,37 +664,37 @@ class CubicNewtonMap(Map):
                    newt_iters: int = 256,
                    line_weight: int = 1):
         """
-         Draw equipotential lines of the specified potential at all roots.
+        Draw equipotential lines of the specified potential at all roots.
 
-         Parameters
-         ----------
-         im: Image
-             The image on which to overla the equipotentials. If None, the
-             Julia set is used.
-         res_x: int
-             The horizontal resolution of the image.
-         res_y: int
-             The vertical resolution of the image.
-         x_range: (float, float)
-             The range of x values to consider.
-         y_range: (float, float)
-             The range of y values to consider.
-         potentials: list
-             The potentials of the lines to plot.
-         res_eqpot: float
-             The resolution of the equipotential line.
-         phi_iters: int
-             The number of iterations used to approximate phi.
-         newt_iters: int
-             The number of Newton iterates used to solve the inverse.
-         line_weight: int
-             The pixel width of the equipotental line.
+        Parameters
+        ----------
+        im: Image
+            The image on which to overla the equipotentials. If None, the
+            Julia set is used.
+        res_x: int
+            The horizontal resolution of the image.
+        res_y: int
+            The vertical resolution of the image.
+        x_range: (float, float)
+            The range of x values to consider.
+        y_range: (float, float)
+            The range of y values to consider.
+        potentials: list
+            The potentials of the lines to plot.
+        res_eqpot: float
+            The resolution of the equipotential line.
+        phi_iters: int
+            The number of iterations used to approximate phi.
+        newt_iters: int
+            The number of Newton iterates used to solve the inverse.
+        line_weight: int
+            The pixel width of the equipotental line.
 
-         Returns
-         -------
-         im: Image.Image
-             The image of the equipotential line as a Pillow image object.
-         """
+        Returns
+        -------
+        im: Image.Image
+            The image of the equipotential line as a Pillow image object.
+        """
         if im is None:
             im = self.draw_julia(res_x=res_x,
                                  res_y=res_y,

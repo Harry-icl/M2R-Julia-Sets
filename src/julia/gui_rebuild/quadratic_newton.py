@@ -7,7 +7,7 @@ import PySimpleGUI as sg
 from julia.quadratic_map import QuadraticMap, QuadraticNewtonMap
 
 from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
-                        ITERATIONS, REC_COLOR, RAY_COLOR)
+                        REC_COLOR)
 
 
 class QuadraticNewtonWindows:
@@ -69,11 +69,15 @@ class QuadraticNewtonWindows:
         return f"Mandelbrot set of {func_name}, ({bottom_left}, {top_right})"
 
     def _title_generator_julia(self):
-        func_name = ((f"z - (z^2 + ({round(self.quadratic_newton.quadratic.c.real, 3)} + "
-                      f"{round(self.quadratic_newton.quadratic.c.imag, 3)})i)/2z")
+        func_name = ((
+            f"z - (z^2 + ({round(self.quadratic_newton.quadratic.c.real, 3)} +"
+            f" {round(self.quadratic_newton.quadratic.c.imag, 3)})i)/2z")
                      if self.quadratic_newton.quadratic.c.imag >= 0
-                     else (f"z - (z^2 + ({round(self.quadratic_newton.quadratic.c.real, 3)} "
-                           f"{round(self.quadratic_newton.quadratic.c.imag, 3)})i)/2z"))
+                     else (
+                        f"z - (z^2 + ("
+                        f"{round(self.quadratic_newton.quadratic.c.real, 3)} "
+                        f"{round(self.quadratic_newton.quadratic.c.imag, 3)}"
+                        f")i)/2z"))
         bottom_left = ((f"{round(self.x_range_j[0], 3)} + "
                         f"{round(self.y_range_j[0], 3)}i")
                        if self.y_range_j[0] >= 0
@@ -93,7 +97,8 @@ class QuadraticNewtonWindows:
             x_range=self.x_range_j,
             y_range=self.y_range_j,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+        self.open_cv_image_julia = np.array(
+            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
         self._draw_internal_rays(self.internal_rays_angles)
@@ -141,8 +146,8 @@ class QuadraticNewtonWindows:
 
         elif event == cv2.EVENT_RBUTTONDOWN:
             self.quadratic_newton.quadratic.c = self._to_complex_j(x, y)
-            print(f"Recalculating julia set with {self.quadratic_newton.quadratic.c} "
-                  f"as c...")
+            print(f"Recalculating julia set with "
+                  f"{self.quadratic_newton.quadratic.c} as c...")
             self._refresh_julia()
 
     def _to_complex_j(self, x, y):
@@ -162,7 +167,7 @@ class QuadraticNewtonWindows:
     def _draw_internal_rays(self, angles):
         angles = [2*pi*theta for theta in angles]
         if angles:
-            print(f"Drawing internal rays...")
+            print("Drawing internal rays...")
             self.pil_img_julia = self.quadratic_newton.draw_ray(
                 im=self.pil_img_julia,
                 res_x=self.x_res_j,
@@ -171,9 +176,10 @@ class QuadraticNewtonWindows:
                 y_range=self.y_range_j,
                 angles=angles,
             )
-            self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.array(
+                self.pil_img_julia.convert('RGB'))[:, :, ::-1]
             cv2.imshow('julia', self.open_cv_image_julia)
-    
+
     def _draw_equipotentials(self, potentials):
         if potentials:
             print("Drawing equipotentials...")
@@ -185,7 +191,8 @@ class QuadraticNewtonWindows:
                 y_range=self.y_range_j,
                 potentials=potentials
             )
-            self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.array(
+                self.pil_img_julia.convert('RGB'))[:, :, ::-1]
             cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
@@ -249,7 +256,7 @@ class QuadraticNewtonWindows:
                     theta_list = list(np.linspace(0, 1, count, endpoint=False))
                     self.internal_rays_angles += theta_list
                     self._draw_internal_rays(theta_list)
-        
+
             elif key == ord('e'):
                 layout = [
                     [sg.Text('Please enter the potential for the equipotential'
