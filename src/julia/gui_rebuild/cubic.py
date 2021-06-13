@@ -13,8 +13,11 @@ from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
 class CubicWindows:
     """The class for the cubic GUI."""
 
-    def __init__(self, multiprocessing):
+    def __init__(self, multiprocessing: bool = False, preimages: bool = True):
         self.multiprocessing = multiprocessing
+        if preimages:
+            global ITERATIONS
+            ITERATIONS = 10
 
         self.btn_down, self.drag = False, False
         self.x_range_m, self.y_range_m = X_RANGEM0, Y_RANGEM0
@@ -277,6 +280,20 @@ class CubicWindows:
         
     def _draw_equipotentials(self, potentials):
         return NotImplementedError
+        """
+        for potential in potentials:
+            print(f"Drawing equipotential line at {potential}...")
+            equipotential_im = self.cubic_map.draw_equipotential(
+                potential,
+                res_x=self.x_res_j,
+                res_y=self.y_res_j,
+                x_range=self.x_range_j,
+                y_range=self.y_range_j
+            )
+            open_cv_equi_im = np.array(equipotential_im.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia, open_cv_equi_im)
+        cv2.imshow('julia', self.open_cv_image_julia)
+        """
 
     def _main_loop(self):
         while True:

@@ -1,9 +1,6 @@
 from julia import CubicMap
+from matplotlib import cm
 
-cm = CubicMap(a=0, b=complex(0.456, 0.627))
+cubm = CubicMap(a=3*(-1)**(3/2), b=0)
 
-cm.draw_julia(res_x=1440, res_y=1440, iterations=100, x_range=(-2, 2), y_range=(-2, 2)).show()
-
-cm.b = complex(0.427, 1.187)
-
-cm.draw_julia(res_x=1440, res_y=1440, iterations=50, x_range=(-2, 2), y_range=(-2, 2)).show()
+cubm.draw_julia(res_x=1440, res_y=1440, iterations=10, z_max=2, colormap=cm.bone_r).show()

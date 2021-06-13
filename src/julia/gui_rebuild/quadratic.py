@@ -13,8 +13,11 @@ from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
 class QuadraticWindows:
     """The class for the Quadratic GUI."""
 
-    def __init__(self, multiprocessing):
+    def __init__(self, multiprocessing: bool = False, preimages: bool = False):
         self.multiprocessing = multiprocessing
+        if preimages:
+            global ITERATIONS
+            ITERATIONS = 10
 
         self.btn_down, self.drag = False, False
         self.x_range_m, self.y_range_m = X_RANGEM0, Y_RANGEM0
@@ -250,15 +253,16 @@ class QuadraticWindows:
     def _draw_external_rays_julia(self, angles):
         angles = [2*pi*angle for angle in angles]
         for theta in angles:
-            print(f"Drawing external ray at {theta}*2pi radians...")
+            print(f"Drawing external ray at {theta} radians...")
             ray = [self._from_complex_j(z)
                    for z in self.quadratic_map.external_ray_julia(theta)]
             pairs = zip(ray[:-1], ray[1:])
-
+            open_cv_im_rays = self.open_cv_image_julia.copy()
             for pair in pairs:
-                cv2.line(self.open_cv_image_julia[:,:,::-1],
-                         pair[0], pair[1],
-                         color=RAY_COLOR, thickness=1)
+                open_cv_im_rays= cv2.line(open_cv_im_rays,
+                                          pair[0], pair[1],
+                                          color=RAY_COLOR, thickness=1)
+            self.open_cv_image_julia = open_cv_im_rays
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):

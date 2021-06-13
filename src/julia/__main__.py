@@ -20,6 +20,9 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--multiprocessing',
                         help="Use parallelisation - off by default.",
                         action='store_true')
+    parser.add_argument('-p', '--preimages',
+                        help="Draw 10 preimages instead of julia sets",
+                        action='store_true')
     args = parser.parse_args()
     if args.newton and args.cubic:
         from .gui_rebuild import CubicNewtonWindows
@@ -31,9 +34,9 @@ if __name__ == "__main__":
         quadratic_newton_gui.start()
     elif args.cubic:
         from .gui_rebuild import CubicWindows
-        cubic_gui = CubicWindows(multiprocessing=args.multiprocessing)
+        cubic_gui = CubicWindows(multiprocessing=args.multiprocessing, preimages=args.preimages)
         cubic_gui.start()
     else:
         from .gui_rebuild import QuadraticWindows
-        quadratic_gui = QuadraticWindows(multiprocessing=args.multiprocessing)
+        quadratic_gui = QuadraticWindows(multiprocessing=args.multiprocessing, preimages=args.preimages)
         quadratic_gui.start()
