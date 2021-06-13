@@ -264,14 +264,17 @@ class CubicMap(Map):
     @staticmethod
     @jit(nopython=True)
     def _bottcher(f, z, a, b, max_n=5):
-        total = 1
-        for n in range(1, max_n + 1):
-            f_n = z
-            for i in range(n-1):
-                f_n = f(f_n, a, b)
-            total *= (1 - a/(f_n**2) + b/(f_n**3))**(1/(3**n))
-        total = z * total
-        return total
+        if a==0 and b==0:
+            return z
+        else:
+            total = 1
+            for n in range(1, max_n + 1):
+                f_n = z
+                for i in range(n-1):
+                    f_n = f(f_n, a, b)
+                total *= (1 - a/(f_n**2) + b/(f_n**3))**(1/(3**n))
+            total = z * total
+            return total
     
     @staticmethod
     @jit(nopython=True)
