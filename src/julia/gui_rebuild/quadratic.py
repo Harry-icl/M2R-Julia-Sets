@@ -101,7 +101,7 @@ class QuadraticWindows:
             y_range=self.y_range_m,
             multiprocessing=self.multiprocessing)
         self.open_cv_image_mandel = np.array(
-            self.pil_img_mandel.convert('RGB'))[:,:,::-1]
+            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
         cv2.imshow('mandel', self.open_cv_image_mandel)
         cv2.setWindowTitle('mandel', self._title_generator())
         self._draw_external_rays(self.external_rays_angles)
@@ -114,7 +114,8 @@ class QuadraticWindows:
             x_range=self.x_range_j,
             y_range=self.y_range_j,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+        self.open_cv_image_julia = np.array(
+            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
         self._draw_external_rays_julia(self.external_rays_angles_julia)
@@ -245,11 +246,11 @@ class QuadraticWindows:
             pairs = zip(ray[:-1], ray[1:])
 
             for pair in pairs:
-                cv2.line(self.open_cv_image_mandel[:,:,::-1],
+                cv2.line(self.open_cv_image_mandel[:, :, ::-1],
                          pair[0], pair[1],
                          color=RAY_COLOR, thickness=1)
         cv2.imshow('mandel', self.open_cv_image_mandel)
-    
+
     def _draw_external_rays_julia(self, angles):
         angles = [2*pi*angle for angle in angles]
         for theta in angles:
@@ -259,9 +260,9 @@ class QuadraticWindows:
             pairs = zip(ray[:-1], ray[1:])
             open_cv_im_rays = self.open_cv_image_julia.copy()
             for pair in pairs:
-                open_cv_im_rays= cv2.line(open_cv_im_rays,
-                                          pair[0], pair[1],
-                                          color=RAY_COLOR, thickness=1)
+                open_cv_im_rays = cv2.line(open_cv_im_rays,
+                                           pair[0], pair[1],
+                                           color=RAY_COLOR, thickness=1)
             self.open_cv_image_julia = open_cv_im_rays
         cv2.imshow('julia', self.open_cv_image_julia)
 
@@ -275,8 +276,10 @@ class QuadraticWindows:
                 x_range=self.x_range_j,
                 y_range=self.y_range_j
             )
-            open_cv_equi_im = np.array(equipotential_im.convert('RGB'))[:,:,::-1]
-            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia, open_cv_equi_im)
+            open_cv_equi_im = np.array(
+                equipotential_im.convert('RGB'))[:, :, ::-1]
+            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia,
+                                                  open_cv_equi_im)
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
@@ -303,7 +306,8 @@ class QuadraticWindows:
 
             elif key == ord('r'):
                 layout = [
-                    [sg.Text('Would you like to draw external rays on the mandelbrot or julia set?', size=(50, 2))],
+                    [sg.Text('Would you like to draw external rays on the mand'
+                             'elbrot or julia set?', size=(50, 2))],
                     [sg.Button('Mandelbrot', size=(15, 1)),
                      sg.Button('Julia', size=(15, 1)),
                      sg.Cancel(size=(15, 1))]
@@ -315,18 +319,19 @@ class QuadraticWindows:
                     continue
                 elif event == 'Mandelbrot':
                     layout = [
-                        [sg.Text('Please enter the angle for the external ray as a'
-                                'multiple of 2pi (i.e. enter 1 to get 2pi radians'
-                                ').', size=(50, 2))],
+                        [sg.Text('Please enter the angle for the external ray '
+                                 'as a multiple of 2pi (i.e. enter 1 to get 2p'
+                                 'i radians).', size=(50, 2))],
                         [sg.Text('Theta', size=(10, 1)),
-                        sg.InputText(size=(10, 1)),
-                        sg.Button('Draw Ray', size=(25, 1))],
-                        [sg.Text('Or enter the number of evenly-spaced rays you wo'
-                                'uld like to draw.', size=(50, 2))],
-                        [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
-                        sg.Button('Draw Rays', size=(25, 1))],
+                         sg.InputText(size=(10, 1)),
+                         sg.Button('Draw Ray', size=(25, 1))],
+                        [sg.Text('Or enter the number of evenly-spaced rays yo'
+                                 'u would like to draw.', size=(50, 2))],
+                        [sg.Text('Rays', size=(10, 1)),
+                         sg.InputText(size=(10, 1)),
+                         sg.Button('Draw Rays', size=(25, 1))],
                         [sg.Button('Remove all external rays', size=(22, 1)),
-                        sg.Cancel(size=(23, 1))]
+                         sg.Cancel(size=(23, 1))]
                     ]
                     window = sg.Window('External rays', layout)
                     event, values = window.read()
@@ -349,30 +354,32 @@ class QuadraticWindows:
                         try:
                             count = int(values[1])
                         except(ValueError):
-                            print("Not a valid number of rays. Number of rays must"
-                                " be an integer.")
+                            print("Not a valid number of rays. Number of rays "
+                                  "must be an integer.")
                             continue
                         if count < 1:
-                            print("Not a valid number of rays. Number of rays must"
-                                " be an integer.")
+                            print("Not a valid number of rays. Number of rays "
+                                  "must be an integer.")
                             continue
-                        theta_list = list(np.linspace(0, 1, count, endpoint=False))
+                        theta_list = list(np.linspace(0, 1, count,
+                                                      endpoint=False))
                         self.external_rays_angles += theta_list
                         self._draw_external_rays(theta_list)
                 elif event == 'Julia':
                     layout = [
-                        [sg.Text('Please enter the angle for the external ray as a'
-                                'multiple of 2pi (i.e. enter 1 to get 2pi radians'
-                                ').', size=(50, 2))],
+                        [sg.Text('Please enter the angle for the external ray '
+                                 'as a multiple of 2pi (i.e. enter 1 to get 2p'
+                                 'i radians).', size=(50, 2))],
                         [sg.Text('Theta', size=(10, 1)),
-                        sg.InputText(size=(10, 1)),
-                        sg.Button('Draw Ray', size=(25, 1))],
-                        [sg.Text('Or enter the number of evenly-spaced rays you wo'
-                                'uld like to draw.', size=(50, 2))],
-                        [sg.Text('Rays', size=(10, 1)), sg.InputText(size=(10, 1)),
-                        sg.Button('Draw Rays', size=(25, 1))],
+                         sg.InputText(size=(10, 1)),
+                         sg.Button('Draw Ray', size=(25, 1))],
+                        [sg.Text('Or enter the number of evenly-spaced rays yo'
+                                 'u would like to draw.', size=(50, 2))],
+                        [sg.Text('Rays', size=(10, 1)),
+                         sg.InputText(size=(10, 1)),
+                         sg.Button('Draw Rays', size=(25, 1))],
                         [sg.Button('Remove all external rays', size=(22, 1)),
-                        sg.Cancel(size=(23, 1))]
+                         sg.Cancel(size=(23, 1))]
                     ]
                     window = sg.Window('External rays', layout)
                     event, values = window.read()
@@ -395,27 +402,30 @@ class QuadraticWindows:
                         try:
                             count = int(values[1])
                         except(ValueError):
-                            print("Not a valid number of rays. Number of rays must"
-                                " be an integer.")
+                            print("Not a valid number of rays. Number of rays "
+                                  "must be an integer.")
                             continue
                         if count < 1:
-                            print("Not a valid number of rays. Number of rays must"
-                                " be an integer.")
+                            print("Not a valid number of rays. Number of rays "
+                                  "must be an integer.")
                             continue
-                        theta_list = list(np.linspace(0, 1, count, endpoint=False))
+                        theta_list = list(np.linspace(0, 1, count,
+                                                      endpoint=False))
                         self.external_rays_angles_julia += theta_list
                         self._draw_external_rays_julia(theta_list)
 
             elif key == ord('e'):
                 layout = [
-                    [sg.Text('Please enter the potential for the equipotential line.',
-                             size=(50, 2))],
+                    [sg.Text('Please enter the potential for the equipotential'
+                             ' line.', size=(50, 2))],
                     [sg.Text('Potential', size=(10, 1)),
                      sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotential', size=(25, 1))],
-                    [sg.Text('Or enter the number of evenly-logarithmically-spaced equipotential lines you wo'
-                             'uld like to draw.', size=(50, 2))],
-                    [sg.Text('Lines', size=(10, 1)), sg.InputText(size=(10, 1)),
+                    [sg.Text('Or enter the number of evenly-logarithmically-sp'
+                             'aced equipotential lines you would like to draw',
+                             size=(50, 2))],
+                    [sg.Text('Lines', size=(10, 1)),
+                     sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotentials', size=(25, 1))],
                     [sg.Button('Remove all equipotential lines', size=(22, 1)),
                      sg.Cancel(size=(23, 1))]
@@ -433,7 +443,8 @@ class QuadraticWindows:
                     try:
                         potential = float(values[0])
                     except(ValueError):
-                        print('Not a valid potential. Potentials must be a float')
+                        print('Not a valid potential. Potentials must be a flo'
+                              'at')
                         continue
                     self.equipotentials += [potential]
                     self._draw_equipotentials([potential])
@@ -441,12 +452,13 @@ class QuadraticWindows:
                     try:
                         count = int(values[1])
                     except(ValueError):
-                        print("Not a valid number of potentials. Number of potentials must be an integer.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be an integer.")
                         continue
                     if count < 1:
-                        print("Not a valid number of potentials. Number of potentials must"
-                              " be positive.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be positive.")
                         continue
-                    potential_list = list(np.logspace(-5, 3, count, base=2))
+                    potential_list = list(np.logspace(-5, 0, count, base=2))
                     self.equipotentials += potential_list
                     self._draw_equipotentials(potential_list)

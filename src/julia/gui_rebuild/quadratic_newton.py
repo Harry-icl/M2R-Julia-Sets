@@ -252,14 +252,16 @@ class QuadraticNewtonWindows:
         
             elif key == ord('e'):
                 layout = [
-                    [sg.Text('Please enter the potential for the equipotential line.',
-                             size=(50, 2))],
+                    [sg.Text('Please enter the potential for the equipotential'
+                             ' line.', size=(50, 2))],
                     [sg.Text('Potential', size=(10, 1)),
                      sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotential', size=(25, 1))],
-                    [sg.Text('Or enter the number of evenly-logarithmically-spaced equipotential lines you wo'
-                             'uld like to draw.', size=(50, 2))],
-                    [sg.Text('Lines', size=(10, 1)), sg.InputText(size=(10, 1)),
+                    [sg.Text('Or enter the number of evenly-logarithmically-sp'
+                             'aced equipotential lines you would like to draw',
+                             size=(50, 2))],
+                    [sg.Text('Lines', size=(10, 1)),
+                     sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotentials', size=(25, 1))],
                     [sg.Button('Remove all equipotential lines', size=(22, 1)),
                      sg.Cancel(size=(23, 1))]
@@ -277,18 +279,20 @@ class QuadraticNewtonWindows:
                     try:
                         potential = float(values[0])
                     except(ValueError):
-                        print('Not a valid potential. Potentials must be a float')
+                        print('Not a valid potential. Potentials must be a flo'
+                              'at')
                     self.equipotentials += [potential]
                     self._draw_equipotentials([potential])
                 elif event == 'Draw Equipotentials':
                     try:
                         count = int(values[1])
                     except(ValueError):
-                        print("Not a valid number of potentials. Number of potentials must be an integer.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be an integer.")
                         continue
                     if count < 1:
-                        print("Not a valid number of potentials. Number of potentials must"
-                              " be positive.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be positive.")
                         continue
                     potential_list = list(np.logspace(-5, 3, count, base=2))
                     self.equipotentials += potential_list

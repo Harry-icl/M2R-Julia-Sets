@@ -7,7 +7,7 @@ import PySimpleGUI as sg
 from julia.cubic_map import CubicMap, CubicNewtonMap
 
 from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
-                        ITERATIONS, REC_COLOR, RAY_COLOR)
+                        ITERATIONS, REC_COLOR)
 
 
 class CubicNewtonWindows:
@@ -55,15 +55,15 @@ class CubicNewtonWindows:
         self._main_loop()
 
     def _title_generator(self):
-        func_name = ((f"z - (z^3 - ({round(self.cubic_newton.cubic.a.real, 3)} + "
-                      f"{round(self.cubic_newton.cubic.a.imag, 3)}i)z + b)/(3z^2 "
-                      f"- ({round(self.cubic_newton.cubic.a.real, 3)} + "
+        func_name = ((f"z - (z^3 - ({round(self.cubic_newton.cubic.a.real, 3)}"
+                      f" + {round(self.cubic_newton.cubic.a.imag, 3)}i)z + b)/"
+                      f"(3z^2 - ({round(self.cubic_newton.cubic.a.real, 3)} + "
                       f"{round(self.cubic_newton.cubic.a.imag, 3)}i))")
                      if self.cubic_newton.cubic.a.imag >= 0
                      else
-                     (f"z - (z^3 - ({round(self.cubic_newton.cubic.a.real, 3)} "
-                      f"{round(self.cubic_newton.cubic.a.imag, 3)}i)z + b)/(3z^2 "
-                      f"- ({round(self.cubic_newton.cubic.a.real, 3)} "
+                     (f"z - (z^3 - ({round(self.cubic_newton.cubic.a.real, 3)}"
+                      f" {round(self.cubic_newton.cubic.a.imag, 3)}i)z + b)/(3"
+                      f"z^2 - ({round(self.cubic_newton.cubic.a.real, 3)} "
                       f"{round(self.cubic_newton.cubic.a.imag, 3)}i))"))
         bottom_left = ((f"{round(self.x_range_m[0], 3)} + "
                         f"{round(self.y_range_m[0], 3)}i")
@@ -110,7 +110,8 @@ class CubicNewtonWindows:
             x_range=self.x_range_j,
             y_range=self.y_range_j,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+        self.open_cv_image_julia = np.array(
+            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
         cv2.setWindowTitle('julia', self._title_generator_julia())
         self._draw_internal_rays(self.internal_rays_angles)
@@ -161,7 +162,8 @@ class CubicNewtonWindows:
 
         elif event == cv2.EVENT_RBUTTONDOWN:
             self.cubic_newton.cubic.b = self._to_complex_j(x, y)
-            print(f"Recalculating julia set with {self.cubic_newton.cubic.b} as b...")
+            print(f"Recalculating julia set with {self.cubic_newton.cubic.b} a"
+                  f"s b...")
             self._refresh_julia()
 
     def _to_complex_j(self, x, y):
@@ -181,7 +183,7 @@ class CubicNewtonWindows:
     def _draw_internal_rays(self, angles):
         angles = [2*pi*theta for theta in angles]
         if angles:
-            print(f"Drawing internal rays...")
+            print("Drawing internal rays...")
             self.pil_img_julia = self.cubic_newton.draw_ray(
                 im=self.pil_img_julia,
                 res_x=self.x_res_j,
@@ -190,7 +192,8 @@ class CubicNewtonWindows:
                 y_range=self.y_range_j,
                 angles=angles,
             )
-            self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.array(
+                self.pil_img_julia.convert('RGB'))[:, :, ::-1]
             cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
@@ -204,7 +207,8 @@ class CubicNewtonWindows:
                 y_range=self.y_range_j,
                 potentials=potentials
             )
-            self.open_cv_image_julia = np.array(self.pil_img_julia.convert('RGB'))[:,:,::-1]
+            self.open_cv_image_julia = np.array(
+                self.pil_img_julia.convert('RGB'))[:, :, ::-1]
             cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
@@ -264,17 +268,19 @@ class CubicNewtonWindows:
                     theta_list = list(np.linspace(0, 1, count, endpoint=False))
                     self.internal_rays_angles += theta_list
                     self._draw_internal_rays(theta_list)
-                
+
             elif key == ord('e'):
                 layout = [
-                    [sg.Text('Please enter the potential for the equipotential line.',
-                             size=(50, 2))],
+                    [sg.Text('Please enter the potential for the equipotential'
+                             ' line.', size=(50, 2))],
                     [sg.Text('Potential', size=(10, 1)),
                      sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotential', size=(25, 1))],
-                    [sg.Text('Or enter the number of evenly-logarithmically-spaced equipotential lines you wo'
-                             'uld like to draw.', size=(50, 2))],
-                    [sg.Text('Lines', size=(10, 1)), sg.InputText(size=(10, 1)),
+                    [sg.Text('Or enter the number of evenly-logarithmically-sp'
+                             'aced equipotential lines you would like to draw',
+                             size=(50, 2))],
+                    [sg.Text('Lines', size=(10, 1)),
+                     sg.InputText(size=(10, 1)),
                      sg.Button('Draw Equipotentials', size=(25, 1))],
                     [sg.Button('Remove all equipotential lines', size=(22, 1)),
                      sg.Cancel(size=(23, 1))]
@@ -292,18 +298,20 @@ class CubicNewtonWindows:
                     try:
                         potential = float(values[0])
                     except(ValueError):
-                        print('Not a valid potential. Potentials must be a float')
+                        print('Not a valid potential. Potentials must be a flo'
+                              'at')
                     self.equipotentials += [potential]
                     self._draw_equipotentials([potential])
                 elif event == 'Draw Equipotentials':
                     try:
                         count = int(values[1])
                     except(ValueError):
-                        print("Not a valid number of potentials. Number of potentials must be an integer.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be an integer.")
                         continue
                     if count < 1:
-                        print("Not a valid number of potentials. Number of potentials must"
-                              " be positive.")
+                        print("Not a valid number of potentials. Number of pot"
+                              "entials must be positive.")
                         continue
                     potential_list = list(np.logspace(-5, 3, count, base=2))
                     self.equipotentials += potential_list

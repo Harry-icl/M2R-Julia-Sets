@@ -341,7 +341,6 @@ class CubicMap(Map):
         results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.a, self.b, equipotential, res_x, res_y, x_range, y_range, max_n)
         results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
-        im.show()
         return im
 
 
