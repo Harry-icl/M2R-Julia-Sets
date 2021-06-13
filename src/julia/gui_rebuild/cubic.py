@@ -27,9 +27,9 @@ class CubicWindows:
         self.x_res_m, self.y_res_m = RESOLUTION, RESOLUTION
         self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
 
-        self.external_rays_angles = []
-        self.external_rays_angles_julia = []
-        self.equipotentials = []
+        self.external_rays_angles = set()
+        self.external_rays_angles_julia = set()
+        self.equipotentials = set()
 
         self.cubic_map = CubicMap(a=0, b=0)
 
@@ -267,17 +267,18 @@ class CubicWindows:
         cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
-        angles = [2*pi*angle for angle in angles]
+        angles = set(2*pi*angle for angle in angles)
         for theta in angles:
-            print(f"Drawing external ray at {theta}*2pi radians...")
+            print(f"Drawing external ray at {theta} radians...")
             ray = [self._from_complex_j(z)
                    for z in self.cubic_map.external_ray_julia(theta)]
             pairs = zip(ray[:-1], ray[1:])
-
+            open_cv_im_rays = self.open_cv_image_julia.copy()
             for pair in pairs:
-                cv2.line(self.open_cv_image_julia[:, :, ::-1],
+                cv2.line(open_cv_im_rays,
                          pair[0], pair[1],
                          color=RAY_COLOR, thickness=1)
+            self.open_cv_image_julia = open_cv_im_rays
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
@@ -354,7 +355,7 @@ class CubicWindows:
                         continue
                     elif event == 'Remove all external rays':
                         print("Removing external rays...")
-                        self.external_rays_angles = []
+                        self.external_rays_angles = set()
                         self._refresh_mandel()
                     if event == 'Draw Ray':
                         try:
@@ -362,7 +363,7 @@ class CubicWindows:
                         except(ValueError):
                             print("Not a valid angle. Angles must be a float.")
                             continue
-                        self.external_rays_angles += [theta]
+                        self.external_rays_angles.add(theta)
                         self._draw_external_rays([theta])
                     elif event == 'Draw Rays':
                         try:
@@ -377,7 +378,7 @@ class CubicWindows:
                             continue
                         theta_list = list(np.linspace(0, 1, count,
                                                       endpoint=False))
-                        self.external_rays_angles += theta_list
+                        self.external_rays_angles.update(theta_list)
                         self._draw_external_rays(theta_list)
                 elif event == 'Julia':
                     layout = [
@@ -402,7 +403,7 @@ class CubicWindows:
                         continue
                     elif event == 'Remove all external rays':
                         print("Removing external rays...")
-                        self.external_rays_angles_julia = []
+                        self.external_rays_angles_julia = set()
                         self._refresh_julia()
                     if event == 'Draw Ray':
                         try:
@@ -410,7 +411,7 @@ class CubicWindows:
                         except(ValueError):
                             print("Not a valid angle. Angles must be a float.")
                             continue
-                        self.external_rays_angles_julia += [theta]
+                        self.external_rays_angles_julia.add(theta)
                         self._draw_external_rays_julia([theta])
                     elif event == 'Draw Rays':
                         try:
@@ -425,7 +426,7 @@ class CubicWindows:
                             continue
                         theta_list = list(np.linspace(0, 1, count,
                                                       endpoint=False))
-                        self.external_rays_angles_julia += theta_list
+                        self.external_rays_angles_julia.update(theta_list)
                         self._draw_external_rays_julia(theta_list)
 
             elif key == ord('e'):
@@ -451,7 +452,7 @@ class CubicWindows:
                     continue
                 elif event == 'Remove all equipotential lines':
                     print("Removing equipotentials...")
-                    self.equipotentials = []
+                    self.equipotentials = set()
                     self._refresh_julia()
                 elif event == 'Draw Equipotential':
                     try:
@@ -459,7 +460,7 @@ class CubicWindows:
                     except(ValueError):
                         print('Not a valid potential. Potentials must be a flo'
                               'at')
-                    self.equipotentials += [potential]
+                    self.equipotentials.add(potential)
                     self._draw_equipotentials([potential])
                 elif event == 'Draw Equipotentials':
                     try:
@@ -473,5 +474,5 @@ class CubicWindows:
                               "entials must be positive.")
                         continue
                     potential_list = list(np.logspace(-5, 0, count, base=2))
-                    self.equipotentials += potential_list
+                    self.equipotentials.update(potential_list)
                     self._draw_equipotentials(potential_list)
