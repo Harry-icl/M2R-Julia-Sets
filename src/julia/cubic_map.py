@@ -35,9 +35,10 @@ class CubicMap(Map):
     
     @property
     def roots(self):
+        if self.a == self.b == 0:
+            cub_roots = np.array([0])
         if self.b == 0:
             cub_roots = np.array([complex(0), cmath.sqrt(self.a), -cmath.sqrt(self.a)])
-            return None
         elif self.a == 0:
             gamma = complex((-self.b)**(1/3))
         else:
@@ -387,7 +388,7 @@ class CubicNewtonMap(Map):
     def _conv_time_julia(z, a, b, roots, iterations, tol):
         result = [0, 0, 0]
         for i in range(iterations):
-            z -= (z**3 - a*z + b)/(3*z**2 - a)
+            z = 2*z/3 if a == b == 0 else z - (z**3 - a*z + b)/(3*z**2 - a)
             for j, r in enumerate(roots):
                 if abs(z-r) < tol:
                     result[j] = int(255*(1-i/iterations))
@@ -475,7 +476,7 @@ class CubicNewtonMap(Map):
         return im
 
     @ staticmethod
-    @jit(nopython=True)
+    @ jit(nopython=True)
     def _phi_inv(w_list, roots, a, phi_iters, newt_iters):
         def _q(z, r):
             if r == 0:
@@ -631,17 +632,63 @@ class CubicNewtonMap(Map):
                    width=line_weight, joint="curve")
         return im
 
+    @staticmethod
+    @jit(nopython=True)
+    def _eqpot_points(sample_list,
+                      x_space,
+                      y_space,
+                      roots,
+                      a,
+                      potentials,
+                      phi_iters):
+        def _q(z, r):
+            if r == 0:
+                return 1 + 3/(2*z**2)
+            return ((9*r**2*z**2 + 18*r**2*z + 9*r**2 - 3*a)
+                    / (9*r**2*z**2 + (6*r**2 - 2*a)*z))
+
+        def _f(z, r):
+            if r == 0:
+                return z**3 + 3/2*z
+            return ((9*r**2*z**3 + 18*r**2*z**2 + (9*r**2 - 3*a)*z)
+                    / (9*r**2*z + 6*r**2 - 2*a))
+
+        def psi(z, r):
+            if r == 0:
+                return cmath.sqrt(-a/2)/z
+            return (3*r**2 - a)/(3*r*z - 3*r**2)
+
+        z_list = [False for i in enumerate(sample_list)]
+        pots = [0., 0., 0., 0.]
+        for root_idx, r in enumerate(roots):
+            pow = 3. if r == 0 else 2.
+            for j, z in enumerate(sample_list):
+                z = psi(z, r)
+                phi = z * _q(z, r)**(1/pow)
+                prev_f = z
+                for k in range(2, phi_iters):
+                    prev_f = _f(prev_f, r)
+                    factor = _q(prev_f, r)**(pow**-k)
+                    if cmath.isnan(factor) or abs(factor) <= 1e-8:
+                        break
+                    phi *= factor
+                for pot in potentials:
+                    if abs(np.log(abs(phi)) - pot) <= 8*min(x_space, y_space):
+                        z_list[j] = True
+                        break
+        return z_list
+
     def _calculate_eqpot(self,
                          res_x: int = 600,
                          res_y: int = 600,
                          x_range: tuple = (-3, 3),
                          y_range: tuple = (-3, 3),
                          potentials: list = [1.],
-                         res_eqpot: int = 1024,
+                         res_eqpot: int = 2048,
                          phi_iters: int = 128,
                          newt_iters: int = 128):
         w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
-                           np.linspace(-np.pi, np.pi, res_eqpot+1)[:-1]]
+                           np.linspace(-np.pi, np.pi, res_eqpot+1)]
                           for potential in potentials])
         result_list = self._phi_inv(w_list,
                                     self.cubic.roots,
@@ -711,9 +758,9 @@ class CubicNewtonMap(Map):
                                        x_range=x_range,
                                        y_range=y_range,
                                        potentials=potentials,
+                                       res_eqpot=res_eqpot,
                                        phi_iters=phi_iters,
                                        newt_iters=newt_iters)
         for eqpot in eqpots:
-            d.line(eqpot, fill=(255, 255, 255),
-                   width=line_weight, joint="curve")
+            d.point(eqpot, fill=(255, 255, 255))
         return im
