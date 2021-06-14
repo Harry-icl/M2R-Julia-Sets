@@ -36,9 +36,9 @@ class CubicMap(Map):
     @property
     def roots(self):
         if self.a == self.b == 0:
-            cub_roots = np.array([0])
-        if self.b == 0:
-            cub_roots = np.array([complex(0), cmath.sqrt(self.a), -cmath.sqrt(self.a)])
+            return np.array([0])
+        elif self.b == 0:
+            return np.array([complex(0), cmath.sqrt(self.a), -cmath.sqrt(self.a)])
         elif self.a == 0:
             gamma = complex((-self.b)**(1/3))
         else:
