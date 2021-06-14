@@ -355,7 +355,7 @@ class CubicMap(Map):
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         return im
     
-    def external_ray(self, theta, D=50, S=20, R=200, error=0.1):
+    def external_ray(self, theta, D=20, S=10, R=50, error=0.01):
         """
         Construct an array of points on the external ray of angle theta.
 
@@ -382,7 +382,7 @@ class CubicMap(Map):
                 while abs(b_previous - b_next) >= error:
                     C_k = b_next
                     D_k = 1
-                    for x in range(i):
+                    for _ in range(i):
                         D_k = 3 * D_k * C_k**2 - self.a * D_k + 1
                         C_k = C_k ** 3 - self.a * C_k + b_next
                     b_previous = b_next
