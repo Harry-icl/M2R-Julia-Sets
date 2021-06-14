@@ -354,7 +354,51 @@ class CubicMap(Map):
         results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         return im
+    
+    def external_ray(self, theta, D=50, S=20, R=200, error=0.1):
+        """
+        Construct an array of points on the external ray of angle theta.
 
+        Parameters
+        ----------
+        theta: float
+            angle of the external ray
+        D: int
+            depth of the ray
+        S: int
+            sharpness of the ray
+        R: int
+            radius
+        error: float
+            error used for convergence of newton method
+        """
+        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
+        for i in range(1, D + 1):
+            for q in range(1, S + 1):
+                r_m = R ** (1 / (2 ** (i - 1 + q / S)))
+                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 3**(i))
+                b_next = points[-1]
+                b_previous = 0
+                while abs(b_previous - b_next) >= error:
+                    C_k = b_next
+                    D_k = 1
+                    for x in range(i):
+                        D_k = 3 * D_k * C_k**2 - self.a * D_k + 1
+                        C_k = C_k ** 3 - self.a * C_k + b_next
+                    b_previous = b_next
+                    b_next = b_previous - (C_k - t_m) / D_k
+                points.append(b_next)
+        points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
+        return points
+    
+    def draw_ray_mandel(self, theta, D=50, S=20, R=200, error=0.001):
+
+        results = self.external_ray(theta, D, S, R, error)
+        results = [[i.real, i.imag] for i in results]
+        x = [x[0] for x in results]
+        y = [x[1] for x in results]
+        plt.plot(x, y)
+        plt.show()
 
 class CubicNewtonMap(Map):
     """A Newton map f(z) = z - g'(z)/g(z) where g is cubic."""
