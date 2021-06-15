@@ -196,7 +196,6 @@ class QuadraticMap(Map):
             new_result = cmath.log(new_result) 
         return new_result 
 
-
     def external_ray_julia(self, angle, res_ray=1024, phi_iters=128, newt_iters=256):
         w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
                           np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
@@ -209,8 +208,9 @@ class QuadraticMap(Map):
                                        phi_iters,
                                        newt_iters)
         return result_list
-
-    '''def external_ray_julia(self, theta, D=50, R=200, error=0.0001):
+    
+    """
+    def external_ray_julia(self, theta, D=50, R=200, error=0.0001):
         results = []
         list_points = [((1/(2**i))*cmath.log(R) + 2 * np.pi * theta * 1j) for i in range(D)]
         for i in range(D):
@@ -218,7 +218,8 @@ class QuadraticMap(Map):
             result = self.newton_map_julia_log(result, i, R, theta, error)  # i or i+2
             results.append(result)
         results = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, results)
-        return results'''
+        return results
+    """
 
     def draw_ray_julia(self, theta, D=50, R=50, error=0.001):
 
