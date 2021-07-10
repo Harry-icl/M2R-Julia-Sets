@@ -118,7 +118,16 @@ class QuadraticMap(Map):
 
         return results
 
-    def external_ray(self, theta, D=50, S=20, R=200, error=0.1):
+    def _calculate_ray_mandel(self,
+                              res_x: int = 600,
+                              res_y: int = 600,
+                              x_range: tuple = (-3, 3),
+                              y_range: tuple = (-3, 3),
+                              theta: float = 0,
+                              D: float = 50,
+                              S: float = 20,
+                              R: float =200,
+                              error: float = 0.1):
         """
         Construct an array of points on the external ray of angle theta.
 
@@ -145,31 +154,44 @@ class QuadraticMap(Map):
                 while abs(c_previous - c_next) >= error:
                     C_k = c_next
                     D_k = 1
-                    for x in range(i):
+                    for _ in range(i):
                         D_k = 2 * D_k * C_k + 1
                         C_k = C_k ** 2 + c_next
                     c_previous = c_next
                     c_next = c_previous - (C_k - t_m) / D_k
                 points.append(c_next)
-        points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
+        points = list(filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points))
+        points = [complex_to_pixel(point, res_x=res_x, res_y=res_y, x_range=x_range, y_range=y_range) for point in points]
         return points
 
-    def draw_ray(self, theta, D=50, S=20, R=200, error=0.001):
-
-        results = self.external_ray(theta, D, S, R, error)
-        results = [[i.real, i.imag] for i in results]
-        x = [x[0] for x in results]
-        y = [x[1] for x in results]
-        plt.plot(x, y)
-        plt.show()
+    def draw_ray_mandel(self,
+                        im: Image = None,
+                        res_x: int = 600,
+                        res_y: int = 600,
+                        x_range: tuple = (-3, 3),
+                        y_range: tuple = (-3, 3),
+                        line_weight: int = 1,
+                        **kwargs):
+        if im is None:
+            im = self.draw_mandelbrot(res_x=res_x,
+                                      res_y=res_y,
+                                      x_range=x_range,
+                                      y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        ray = self._calculate_ray_mandel(**kwargs)
+        d.line(ray, fill=(0, 0, 0),
+               width=line_weight, joint="curve")
+        return im
     
-    def composition(self, z, iters):
+    def _composition(self, z, iters):
         result = z
         for i in range(iters):
             result = self.__call__(result)
         return result
 
-    def newton_map_julia(self, z, n, R, theta, error=0.001):
+    def _newton_map_julia(self, z, n, R, theta, error=0.001):
         new_result = z
         old_result = 0
         C_k = z
@@ -183,7 +205,7 @@ class QuadraticMap(Map):
             #print(new_result)
         return new_result
 
-    def newton_map_julia_log(self, z, n, R, theta, error=0.001):
+    def _newton_map_julia_log(self, z, n, R, theta, error=0.001):
         new_result = z
         old_result = 0
         while abs(old_result - new_result) >= error:
@@ -195,39 +217,6 @@ class QuadraticMap(Map):
             new_result = old_result - (((cmath.log(self.composition(old_result, n)) - cmath.log(R) - 1j * np.pi * theta))*self.composition(old_result,n))/(fn_prime)
             new_result = cmath.log(new_result) 
         return new_result 
-
-
-    def external_ray_julia(self, angle, res_ray=1024, phi_iters=128, newt_iters=256):
-        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
-        result_list = self._phi_newton(w_list,
-                                       self.c,
-                                       self._f,
-                                       self._df,
-                                       self._q,
-                                       self._dq,
-                                       phi_iters,
-                                       newt_iters)
-        return result_list
-
-    '''def external_ray_julia(self, theta, D=50, R=200, error=0.0001):
-        results = []
-        list_points = [((1/(2**i))*cmath.log(R) + 2 * np.pi * theta * 1j) for i in range(D)]
-        for i in range(D):
-            result = list_points[i]
-            result = self.newton_map_julia_log(result, i, R, theta, error)  # i or i+2
-            results.append(result)
-        results = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, results)
-        return results'''
-
-    def draw_ray_julia(self, theta, D=50, R=50, error=0.001):
-
-        results = self.external_ray_julia(theta, D, R, error)
-        results = [[i.real, i.imag] for i in results]
-        x = [x[0] for x in results]
-        y = [x[1] for x in results]
-        plt.plot(x, y)
-        plt.show()
 
     @staticmethod
     @jit(nopython=True)
@@ -360,7 +349,7 @@ class QuadraticMap(Map):
     
     @staticmethod
     @jit(nopython=True)
-    def _calculate_equipotential(f, bottcher, potential, c, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+    def _calculate_eqpot(f, bottcher, potential, c, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
         results = np.zeros((res_x, res_y))
         step_x = abs((x_range[1] - x_range[0])/res_x)
         step_y = abs((y_range[1] - y_range[0])/res_y)
@@ -378,31 +367,43 @@ class QuadraticMap(Map):
                     results[x_i, y_i] = 1
         return results
     
-    @staticmethod
-    @jit(nopython=True)
-    def _calculate_equipotential_complex(f, bottcher, potential, c, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
-        results = []
-        step_x = abs((x_range[1] - x_range[0])/res_x)
-        step_y = abs((y_range[1] - y_range[0])/res_y)
-        for x in np.linspace(x_range[0], x_range[1], res_x):
-            for y in np.linspace(y_range[0], y_range[1], res_y):
-                c1 = complex(x, y)
-                c2 = complex(x + step_x, y)
-                c3 = complex(x, y + step_y)
-                c4 = complex(x + step_x, y + step_y)
-                pot1 = potential(f, bottcher, c1, c, max_n)
-                pot2 = potential(f, bottcher, c2, c, max_n)
-                pot3 = potential(f, bottcher, c3, c, max_n)
-                pot4 = potential(f, bottcher, c4, c, max_n)
-                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
-                    results.append(c1)
-        return results
-    
-    def draw_equipotential(self, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5) -> Image.Image:
+    def draw_eqpot(self,
+                   im: Image = None,
+                   res_x: int =600,
+                   res_y: int =600,
+                   x_range: tuple =(-3, 3),
+                   y_range: tuple =(-3, 3),
+                   max_n: int =5,
+                   potential: float = 1.,
+                   line_weight: int = 1) -> Image.Image:
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        eqpot = self._calculate_eqpot(self._f,
+                                       self._bottcher,
+                                       self._potential,
+                                       self.c,
+                                       potential,
+                                       res_x, res_y,
+                                       x_range, y_range,
+                                       max_n)
+        eqpot = np.rot90(eqpot)
+        eqpot_im = Image.fromarray(np.uint8(cm.cubehelix_r(eqpot)*255)).convert("RGBA")
+        im_data = eqpot_im.getdata()
 
-        results = self._calculate_equipotential(self._f, self._bottcher, self._potential, self.c, equipotential, res_x, res_y, x_range, y_range, max_n)
-        results = np.rot90(results)
-        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
+        trans_im_data = []
+        for item in im_data:
+            if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                trans_im_data.append((255, 255, 255, 0))
+            else:
+                trans_im_data.append(item)
+        
+        eqpot_im.putdata(trans_im_data)
+        im.paste(eqpot_im, (0, 0), eqpot_im)
         return im
 
 
@@ -425,45 +426,6 @@ class QuadraticNewtonMap(Map):
 
     @staticmethod
     @jit(nopython=True)
-    def _escape_time_mandelbrot(c,
-                                iterations,
-                                z_max):
-        z = c
-        for i in range(iterations):
-            z = z - (z**2 + c)/(2*z)
-            if abs(z) > z_max:
-                return i / iterations
-        else:
-            return 1
-
-    def _calculate_mandelbrot(self,
-                              res_x: int = 600,
-                              res_y: int = 600,
-                              iterations: int = 200,
-                              x_range: tuple = (-2, 2),
-                              y_range: tuple = (-2, 2),
-                              z_max: float = 2,
-                              multiprocessing: bool = False):
-        num_list = [complex(x, y)
-                    for y in np.linspace(y_range[0], y_range[1], res_y)
-                    for x in np.linspace(x_range[0], x_range[1], res_x)]
-        if multiprocessing:
-            pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._escape_time_mandelbrot,
-                                           iterations=iterations,
-                                           z_max=z_max), num_list)
-            results = np.reshape(result_list, (res_y, res_x))
-        else:
-            result_list = map(partial(self._escape_time_mandelbrot,
-                                      iterations=iterations,
-                                      z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float),
-                                 (res_y, res_x))
-
-        return results
-
-    @ staticmethod
-    @ jit(nopython=True)
     def _conv_time_julia(z, c, roots, iterations, tol):
         result = [0, 0, 0]
         for i in range(iterations):
@@ -506,51 +468,6 @@ class QuadraticNewtonMap(Map):
             results = np.reshape(np.array(list(result_list), dtype=np.uint8),
                                  (res_y, res_x, 3))
         return results
-
-    def draw_julia(self,
-                   res_x: int = 600,
-                   res_y: int = 600,
-                   iterations: int = 32,
-                   x_range: tuple = (-3, 3),
-                   y_range: tuple = (-3, 3),
-                   tol: float = 1e-12,
-                   multiprocessing: bool = False) -> Image.Image:
-        """
-        Draw the Julia set for this map with the current parameter values.
-
-        Parameters
-        ----------
-        res_x: int
-            The horizontal resolution of the image.
-        res_y: int
-            The vertical resolution of the image.
-        iterations: int
-            The maximum number of times to apply the map iteratively.
-        x_range: (float, float)
-            The range of x values to consider.
-        y_range: (float, float)
-            The range of y values to consider.
-        tol: float
-            The minimum distance before considering the orbit to have
-            converged.
-        multiprocessing: bool
-            Determines whether to use multiprocessing.
-
-
-        Returns
-        -------
-        im: Image.Image
-            The image of the Julia set as a Pillow image object.
-        """
-        results = self._calculate_julia(res_x,
-                                        res_y,
-                                        iterations,
-                                        x_range,
-                                        y_range,
-                                        tol,
-                                        multiprocessing)
-        im = Image.fromarray(results[::-1], 'RGB')
-        return im
 
     @staticmethod
     @jit(nopython=True)
@@ -663,8 +580,7 @@ class QuadraticNewtonMap(Map):
                    res_y: int = 600,
                    x_range: tuple = (-3, 3),
                    y_range: tuple = (-3, 3),
-                   potentials: float = [1.],
-                   res_eqpot: int = 1024,
+                   potentials: list = [1.],
                    line_weight: int = 1) -> Image.Image:
         """
          Draw equipotential lines of the specified potential at all roots.

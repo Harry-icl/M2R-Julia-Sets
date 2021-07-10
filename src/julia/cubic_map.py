@@ -265,16 +265,17 @@ class CubicMap(Map):
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
         ray = self._calculate_ray(res_x=res_x,
-                                    res_y=res_y,
-                                    x_range=x_range,
-                                    y_range=y_range,
-                                    angle=angle,
-                                    res_ray=res_ray,
-                                    phi_iters=phi_iters,
-                                    newt_iters=newt_iters)
+                                  res_y=res_y,
+                                  x_range=x_range,
+                                  y_range=y_range,
+                                  angle=angle,
+                                  res_ray=res_ray,
+                                  phi_iters=phi_iters,
+                                  newt_iters=newt_iters)
         d.line(ray, fill=(0, 0, 0),
                 width=line_weight, joint="curve")
         return im
+
     @staticmethod
     @jit(nopython=True)
     def _f(z, a, b):
@@ -294,7 +295,7 @@ class CubicMap(Map):
                 total *= (1 - a/(f_n**2) + b/(f_n**3))**(1/(3**n))
             total = z * total
             return total
-    
+
     @staticmethod
     @jit(nopython=True)
     def _potential(f, bottcher, z, a, b, max_n=5):
@@ -390,15 +391,7 @@ class CubicMap(Map):
                 points.append(b_next)
         points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
         return points
-    
-    def draw_ray_mandel(self, theta, D=50, S=20, R=200, error=0.001):
 
-        results = self.external_ray(theta, D, S, R, error)
-        results = [[i.real, i.imag] for i in results]
-        x = [x[0] for x in results]
-        y = [x[1] for x in results]
-        plt.plot(x, y)
-        plt.show()
 
 class CubicNewtonMap(Map):
     """A Newton map f(z) = z - g'(z)/g(z) where g is cubic."""

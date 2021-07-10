@@ -86,43 +86,13 @@ class Map(ABC):
         """
         pass
 
-    def _calculate_mandelbrot(self,
-                              res_x: int = 600,
-                              res_y: int = 600,
-                              iterations: int = 200,
-                              x_range: tuple = (-3, 3),
-                              y_range: tuple = (-3, 3),
-                              z_max: float = 3,
-                              multiprocessing: bool = False) -> np.ndarray:
+    def _calculate_mandelbrot(self, **kwargs) -> np.ndarray:
         """
         Calculate the escape time of given points as c values in the map.
-
-        Parameters
-        ----------
-        res_x: int
-            The number of points in the horizontal axis of the array.
-        res_y: int
-            The number of points in the vertical axis of the array.
-        iterations: int
-            The maximum number of times to apply the map iteratively.
-        x_range: (float, float)
-            The range of x values to consider.
-        y_range: (float, float)
-            The range of y values to consider.
-        z_max: float
-            The maximum z value before considering the point to have escaped.
         """
         pass
 
-    def draw_mandelbrot(self,
-                        res_x: int = 600,
-                        res_y: int = 600,
-                        iterations: int = 200,
-                        x_range: tuple = (-3, 3),
-                        y_range: tuple = (-3, 3),
-                        z_max: float = 3,
-                        multiprocessing: bool = False,
-                        colormap: cm = cm.cubehelix_r) -> Image.Image:
+    def draw_mandelbrot(self, colormap: cm = cm.cubehelix_r, **kwargs) -> Image.Image:
         """
         Draw the Mandelbrot set for this map.
 
@@ -150,53 +120,17 @@ class Map(ABC):
         im: Image.Image
             The image of the Mandelbrot set as a Pillow image object.
         """
-        results = self._calculate_mandelbrot(res_x,
-                                             res_y,
-                                             iterations,
-                                             x_range,
-                                             y_range,
-                                             z_max,
-                                             multiprocessing)
+        results = self._calculate_mandelbrot(**kwargs)
         im = draw_from_array(results[::-1], colormap=colormap)
         return im
 
-    def _calculate_julia(self,
-                         res_x: int = 600,
-                         res_y: int = 600,
-                         iterations: int = 200,
-                         x_range: tuple = (-3, 3),
-                         y_range: tuple = (-3, 3),
-                         z_max: float = 3,
-                         multiprocessing: bool = False) -> np.ndarray:
+    def _calculate_julia(self, **kwargs) -> np.ndarray:
         """
         Calculate the escape time of given points as z values in the map.
-
-        Parameters
-        ----------
-        res_x: int
-            The number of points in the horizontal axis of the array.
-        res_y: int
-            The number of points in the vertical axis of the array.
-        iterations: int
-            The maximum number of times to apply the map iteratively.
-        x_range: (float, float)
-            The range of x values to consider.
-        y_range: (float, float)
-            The range of y values to consider.
-        z_max: float
-            The maximum z value before considering the point to have escaped.
         """
         pass
 
-    def draw_julia(self,
-                   res_x: int = 600,
-                   res_y: int = 600,
-                   iterations: int = 200,
-                   x_range: tuple = (-3, 3),
-                   y_range: tuple = (-3, 3),
-                   z_max: float = 3,
-                   multiprocessing: bool = False,
-                   colormap: cm = cm.cubehelix_r) -> Image.Image:
+    def draw_julia(self, colormap: cm = cm.cubehelix_r, **kwargs) -> Image.Image:
         """
         Draw the Julia set for this map with the current parameter values.
 
@@ -220,12 +154,6 @@ class Map(ABC):
         im: Image.Image
             The image of the Mandelbrot set as a Pillow image object.
         """
-        results = self._calculate_julia(res_x,
-                                        res_y,
-                                        iterations,
-                                        x_range,
-                                        y_range,
-                                        z_max,
-                                        multiprocessing)
+        results = self._calculate_julia(**kwargs)
         im = draw_from_array(results[::-1], colormap=colormap)
         return im

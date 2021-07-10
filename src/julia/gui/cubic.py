@@ -1,19 +1,19 @@
-"""Module containing the QuadraticWindows class."""
+"""Module containing the CubicWindows class."""
 import cv2
 import numpy as np
 from math import sqrt, pi
 import PySimpleGUI as sg
 
-from julia.quadratic_map import QuadraticMap
+from julia.cubic_map import CubicMap
 
 from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
                         ITERATIONS, REC_COLOR, RAY_COLOR)
 
 
-class QuadraticWindows:
-    """The class for the Quadratic GUI."""
+class CubicWindows:
+    """The class for the cubic GUI."""
 
-    def __init__(self, multiprocessing: bool = False, preimages: bool = False):
+    def __init__(self, multiprocessing: bool = False, preimages: bool = True):
         self.multiprocessing = multiprocessing
         if preimages:
             global ITERATIONS
@@ -27,14 +27,14 @@ class QuadraticWindows:
         self.x_res_m, self.y_res_m = RESOLUTION, RESOLUTION
         self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
 
-        self.external_rays_angles = []
-        self.external_rays_angles_julia = []
-        self.equipotentials = []
+        self.external_rays_angles = set()
+        self.external_rays_angles_julia = set()
+        self.equipotentials = set()
 
-        self.quadratic_map = QuadraticMap(c=0)
+        self.cubic_map = CubicMap(a=0, b=0)
 
     def start(self):
-        """Start the quadratic GUI."""
+        """Start the cubic GUI."""
         root = sg.tk.Tk()  # DO NOT DELETE LINES 33-44 OR STUFF BREAKS
         root.withdraw()
 
@@ -61,7 +61,12 @@ class QuadraticWindows:
         self._main_loop()
 
     def _title_generator(self):
-        func_name = "z^2 + c"
+        func_name = ((f"z^3 - ({round(self.cubic_map.a.real, 3)} + "
+                      f"{round(self.cubic_map.a.imag, 3)}i)z + b")
+                     if self.cubic_map.a.imag >= 0
+                     else
+                     (f"z^3 - ({round(self.cubic_map.a.real, 3)} "
+                      f"{round(self.cubic_map.a.imag, 3)}i)z + b"))
         bottom_left = ((f"{round(self.x_range_m[0], 3)} + "
                         f"{round(self.y_range_m[0], 3)}i")
                        if self.y_range_m[0] >= 0
@@ -75,11 +80,18 @@ class QuadraticWindows:
         return f"Mandelbrot set of {func_name}, ({bottom_left}, {top_right})"
 
     def _title_generator_julia(self):
-        func_name = ((f"z^2 + ({round(self.quadratic_map.c.real, 3)} + "
-                      f"{round(self.quadratic_map.c.imag, 3)})i")
-                     if self.quadratic_map.c.imag >= 0
-                     else (f"z^2 + ({round(self.quadratic_map.c.real, 3)} "
-                           f"{round(self.quadratic_map.c.imag, 3)})i"))
+        a_repr = ((f"({round(self.cubic_map.a.real, 3)} + "
+                   f"{round(self.cubic_map.a.imag, 3)}i)")
+                  if self.cubic_map.a.imag >= 0
+                  else (f"({round(self.cubic_map.a.real, 3)} "
+                        f"{round(self.cubic_map.a.imag, 3)}i)"))
+        b_repr = ((f"({round(self.cubic_map.b.real, 3)} + "
+                   f"{round(self.cubic_map.b.imag, 3)}i)")
+                  if self.cubic_map.b.imag >= 0
+                  else (f"({round(self.cubic_map.b.real, 3)} "
+                        f"{round(self.cubic_map.b.imag, 3)}i)"))
+
+        func_name = f"z^3 - {a_repr}z + {b_repr}"
         bottom_left = ((f"{round(self.x_range_j[0], 3)} + "
                         f"{round(self.y_range_j[0], 3)}i")
                        if self.y_range_j[0] >= 0
@@ -93,7 +105,7 @@ class QuadraticWindows:
         return f"Julia set of {func_name}, ({bottom_left}, {top_right})"
 
     def _refresh_mandel(self):
-        self.pil_img_mandel = self.quadratic_map.draw_mandelbrot(
+        self.pil_img_mandel = self.cubic_map.draw_mandelbrot(
             res_x=self.x_res_m,
             res_y=self.y_res_m,
             iterations=ITERATIONS,
@@ -107,7 +119,7 @@ class QuadraticWindows:
         self._draw_external_rays(self.external_rays_angles)
 
     def _refresh_julia(self):
-        self.pil_img_julia = self.quadratic_map.draw_julia(
+        self.pil_img_julia = self.cubic_map.draw_julia(
             res_x=self.x_res_j,
             res_y=self.y_res_j,
             iterations=ITERATIONS,
@@ -131,6 +143,10 @@ class QuadraticWindows:
 
         elif event == cv2.EVENT_LBUTTONUP and not self.drag:
             self.btn_down = False
+            self.cubic_map.a = self._to_complex_m(*self.start_coords)
+            print(f"Recalculating with {self.cubic_map.a} as a...")
+            self._refresh_mandel()
+            self._refresh_julia()
 
         elif event == cv2.EVENT_LBUTTONUP and self.drag:
             self.btn_down = False
@@ -162,9 +178,8 @@ class QuadraticWindows:
             cv2.imshow('mandel', rectangle_open_cv_image_mandel)
 
         elif event == cv2.EVENT_RBUTTONDOWN:
-            self.quadratic_map.c = self._to_complex_m(x, y)
-            print(f"Recalculating julia set with {self.quadratic_map.c} "
-                  f"as c...")
+            self.cubic_map.b = self._to_complex_m(x, y)
+            print(f"Recalculating julia set with {self.cubic_map.b} as b...")
             self._refresh_julia()
 
     def _click_event_julia(self, event, x, y, flags, params):
@@ -177,8 +192,8 @@ class QuadraticWindows:
 
         elif event == cv2.EVENT_LBUTTONUP and not self.drag:
             self.btn_down = False
-            self.quadratic_map.c = self._to_complex_j(*self.start_coords)
-            print(f"Recalculating with {self.quadratic_map.c} as c...")
+            self.cubic_map.b = self._to_complex_j(*self.start_coords)
+            print(f"Recalculating with {self.cubic_map.b} as b...")
             self._refresh_julia()
 
         elif event == cv2.EVENT_LBUTTONUP and self.drag:
@@ -241,43 +256,45 @@ class QuadraticWindows:
     def _draw_external_rays(self, angles):
         for theta in angles:
             print(f"Drawing external ray at {theta}*2pi radians...")
-            self.pil_img_mandel = self.quadratic_map.draw_ray_mandel(self.pil_img_mandel,
-                                                                     res_x=self.x_res_m,
-                                                                     res_y=self.y_res_m,
-                                                                     x_range=self.x_range_m,
-                                                                     y_range=self.y_range_m,
-                                                                     theta=theta)
-        self.open_cv_image_mandel = np.array(
-            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
+            ray = [self._from_complex_m(z)
+                   for z in self.cubic_map.external_ray(theta)]
+            pairs = zip(ray[:-1], ray[1:])
+
+            for pair in pairs:
+                cv2.line(self.open_cv_image_mandel[:, :, ::-1],
+                         pair[0], pair[1],
+                         color=RAY_COLOR, thickness=1)
         cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
-        angles = [2*pi*angle for angle in angles]
+        angles = set(2*pi*angle for angle in angles)
         for theta in angles:
             print(f"Drawing external ray at {theta} radians...")
-            self.pil_img_julia = self.quadratic_map.draw_ray(self.pil_img_julia,
-                                                             res_x=self.x_res_j,
-                                                             res_y=self.y_res_j,
-                                                             x_range=self.x_range_j,
-                                                             y_range=self.y_range_j,
-                                                             angle=theta)
-        self.open_cv_image_julia = np.array(
-            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
+            ray = [self._from_complex_j(z)
+                   for z in self.cubic_map.external_ray_julia(theta)]
+            pairs = zip(ray[:-1], ray[1:])
+            open_cv_im_rays = self.open_cv_image_julia.copy()
+            for pair in pairs:
+                cv2.line(open_cv_im_rays,
+                         pair[0], pair[1],
+                         color=RAY_COLOR, thickness=1)
+            self.open_cv_image_julia = open_cv_im_rays
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
         for potential in potentials:
             print(f"Drawing equipotential line at {potential}...")
-            equipotential_im = self.quadratic_map.draw_eqpot(
-                im=self.pil_img_julia,
+            equipotential_im = self.cubic_map.draw_equipotential(
+                potential,
                 res_x=self.x_res_j,
                 res_y=self.y_res_j,
                 x_range=self.x_range_j,
-                y_range=self.y_range_j,
-                potential=potential
+                y_range=self.y_range_j
             )
-            self.open_cv_image_julia = np.array(
+            open_cv_equi_im = np.array(
                 equipotential_im.convert('RGB'))[:, :, ::-1]
+            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia,
+                                                  open_cv_equi_im)
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
@@ -338,7 +355,7 @@ class QuadraticWindows:
                         continue
                     elif event == 'Remove all external rays':
                         print("Removing external rays...")
-                        self.external_rays_angles = []
+                        self.external_rays_angles = set()
                         self._refresh_mandel()
                     if event == 'Draw Ray':
                         try:
@@ -346,7 +363,7 @@ class QuadraticWindows:
                         except(ValueError):
                             print("Not a valid angle. Angles must be a float.")
                             continue
-                        self.external_rays_angles += [theta]
+                        self.external_rays_angles.add(theta)
                         self._draw_external_rays([theta])
                     elif event == 'Draw Rays':
                         try:
@@ -361,7 +378,7 @@ class QuadraticWindows:
                             continue
                         theta_list = list(np.linspace(0, 1, count,
                                                       endpoint=False))
-                        self.external_rays_angles += theta_list
+                        self.external_rays_angles.update(theta_list)
                         self._draw_external_rays(theta_list)
                 elif event == 'Julia':
                     layout = [
@@ -386,7 +403,7 @@ class QuadraticWindows:
                         continue
                     elif event == 'Remove all external rays':
                         print("Removing external rays...")
-                        self.external_rays_angles_julia = []
+                        self.external_rays_angles_julia = set()
                         self._refresh_julia()
                     if event == 'Draw Ray':
                         try:
@@ -394,7 +411,7 @@ class QuadraticWindows:
                         except(ValueError):
                             print("Not a valid angle. Angles must be a float.")
                             continue
-                        self.external_rays_angles_julia += [theta]
+                        self.external_rays_angles_julia.add(theta)
                         self._draw_external_rays_julia([theta])
                     elif event == 'Draw Rays':
                         try:
@@ -409,7 +426,7 @@ class QuadraticWindows:
                             continue
                         theta_list = list(np.linspace(0, 1, count,
                                                       endpoint=False))
-                        self.external_rays_angles_julia += theta_list
+                        self.external_rays_angles_julia.update(theta_list)
                         self._draw_external_rays_julia(theta_list)
 
             elif key == ord('e'):
@@ -435,7 +452,7 @@ class QuadraticWindows:
                     continue
                 elif event == 'Remove all equipotential lines':
                     print("Removing equipotentials...")
-                    self.equipotentials = []
+                    self.equipotentials = set()
                     self._refresh_julia()
                 elif event == 'Draw Equipotential':
                     try:
@@ -443,8 +460,7 @@ class QuadraticWindows:
                     except(ValueError):
                         print('Not a valid potential. Potentials must be a flo'
                               'at')
-                        continue
-                    self.equipotentials += [potential]
+                    self.equipotentials.add(potential)
                     self._draw_equipotentials([potential])
                 elif event == 'Draw Equipotentials':
                     try:
@@ -458,5 +474,5 @@ class QuadraticWindows:
                               "entials must be positive.")
                         continue
                     potential_list = list(np.logspace(-5, 0, count, base=2))
-                    self.equipotentials += potential_list
+                    self.equipotentials.update(potential_list)
                     self._draw_equipotentials(potential_list)
