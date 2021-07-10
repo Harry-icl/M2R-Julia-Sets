@@ -150,6 +150,57 @@ class CubicMap(Map):
 
         return results
     
+    def _calculate_ray_mandel(self,
+                              res_x: int = 600,
+                              res_y: int = 600,
+                              x_range: tuple = (-3, 3),
+                              y_range: tuple = (-3, 3),
+                              theta: float = 0,
+                              D: float = 20,
+                              S: float = 10,
+                              R: float = 50,
+                              error: float = 0.01):
+        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
+        for i in range(1, D + 1):
+            for q in range(1, S + 1):
+                r_m = R ** (1 / (2 ** (i - 1 + q / S)))
+                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 3**(i))
+                b_next = points[-1]
+                b_previous = 0
+                while abs(b_previous - b_next) >= error:
+                    C_k = b_next
+                    D_k = 1
+                    for _ in range(i):
+                        D_k = 3 * D_k * C_k**2 - self.a * D_k + 1
+                        C_k = C_k ** 3 - self.a * C_k + b_next
+                    b_previous = b_next
+                    b_next = b_previous - (C_k - t_m) / D_k
+                points.append(b_next)
+        points = list(filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points))
+        points = [complex_to_pixel(point, res_x=res_x, res_y=res_y, x_range=x_range ,y_range=y_range) for point in points]
+        return points
+
+    def draw_ray_mandel(self,
+                        im: Image = None,
+                        res_x: int = 600,
+                        res_y: int = 600,
+                        x_range: tuple = (-3, 3),
+                        y_range: tuple = (-3, 3),
+                        line_weight: int = 1,
+                        **kwargs):
+        if im is None:
+            im = self.draw_mandelbrot(res_x=res_x,
+                                      res_y=res_y,
+                                      x_range=x_range,
+                                      y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        d = ImageDraw.Draw(im)
+        ray = self._calculate_ray_mandel(**kwargs)
+        d.line(ray, fill=(0, 0, 0),
+               width=line_weight, joint="curve")
+        return im
+    
     @staticmethod
     @jit(nopython=True)
     def _q(z, a, b):
@@ -199,24 +250,6 @@ class CubicMap(Map):
                 z = z-1/dphi*(1-w/phi)
             z_list.append(z)
         return z_list
-
-    def external_ray_julia(self,
-                     angle: float = 0,
-                     res_ray: int = 2048,
-                     phi_iters: int = 128,
-                     newt_iters: int = 256):
-        w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
-        result_list = self._phi_newton(w_list,
-                                       self.a,
-                                       self.b,
-                                       self._f,
-                                       self._df,
-                                       self._q,
-                                       self._dq,
-                                       phi_iters,
-                                       newt_iters)
-        return result_list
 
     def _calculate_ray(self,
                        res_x: int = 600,
@@ -303,7 +336,7 @@ class CubicMap(Map):
     
     @staticmethod
     @jit(nopython=True)
-    def _calculate_equipotential(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+    def _calculate_eqpot(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
         results = np.zeros((res_x, res_y))
         step_x = abs((x_range[1] - x_range[0])/res_x)
         step_y = abs((y_range[1] - y_range[0])/res_y)
@@ -320,77 +353,45 @@ class CubicMap(Map):
                 if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
                     results[x_i, y_i] = 1
         return results
-    
-    @staticmethod
-    @jit(nopython=True)
-    def _calculate_equipotential_complex(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
-        results = []
-        step_x = abs((x_range[1] - x_range[0])/res_x)
-        step_y = abs((y_range[1] - y_range[0])/res_y)
-        for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
-                c1 = complex(x, y)
-                c2 = complex(x + step_x, y)
-                c3 = complex(x, y + step_y)
-                c4 = complex(x + step_x, y + step_y)
-                pot1 = potential(f, bottcher, c1, a, b, max_n)
-                pot2 = potential(f, bottcher, c2, a, b, max_n)
-                pot3 = potential(f, bottcher, c3, a, b, max_n)
-                pot4 = potential(f, bottcher, c4, a, b, max_n)
-                if (min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4)):
-                    results.append(c1)
-        return results
 
-    def draw_equipotential(self, equipotential, res_x=600, res_y=600,
-                           x_range=(-3, 3), y_range=(-3, 3),
-                           max_n=5) -> Image.Image:
+    def draw_eqpot(self,
+                   im: Image = None,
+                   res_x=600,
+                   res_y=600,
+                   x_range=(-3, 3),
+                   y_range=(-3, 3),
+                   max_n=5,
+                   potential: float = 1.) -> Image.Image:
         """Docstring."""
-        results = self._calculate_equipotential(self._f, self._bottcher,
-                                                self._potential,
-                                                self.a, self.b,
-                                                equipotential,
-                                                res_x, res_y,
-                                                x_range, y_range,
-                                                max_n)
-        results = np.rot90(results)
-        im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
-        return im
-    
-    def external_ray(self, theta, D=20, S=10, R=50, error=0.01):
-        """
-        Construct an array of points on the external ray of angle theta.
+        if im is None:
+            im = self.draw_julia(res_x=res_x,
+                                 res_y=res_y,
+                                 x_range=x_range,
+                                 y_range=y_range)
+        else:
+            res_x, res_y = im.size
+        eqpot = self._calculate_eqpot(self._f,
+                                      self._bottcher,
+                                      self._potential,
+                                      self.a, self.b,
+                                      potential,
+                                      res_x, res_y,
+                                      x_range, y_range,
+                                      max_n)
+        eqpot = np.rot90(eqpot)
+        eqpot_im = Image.fromarray(np.uint8(cm.cubehelix_r(eqpot)*255)).convert("RGBA")
+        im_data = eqpot_im.getdata()
 
-        Parameters
-        ----------
-        theta: float
-            angle of the external ray
-        D: int
-            depth of the ray
-        S: int
-            sharpness of the ray
-        R: int
-            radius
-        error: float
-            error used for convergence of newton method
-        """
-        points = [R * cmath.exp(2 * np.pi * theta * 1j)]
-        for i in range(1, D + 1):
-            for q in range(1, S + 1):
-                r_m = R ** (1 / (2 ** (i - 1 + q / S)))
-                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 3**(i))
-                b_next = points[-1]
-                b_previous = 0
-                while abs(b_previous - b_next) >= error:
-                    C_k = b_next
-                    D_k = 1
-                    for _ in range(i):
-                        D_k = 3 * D_k * C_k**2 - self.a * D_k + 1
-                        C_k = C_k ** 3 - self.a * C_k + b_next
-                    b_previous = b_next
-                    b_next = b_previous - (C_k - t_m) / D_k
-                points.append(b_next)
-        points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
-        return points
+        trans_im_data = []
+        for item in im_data:
+            if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                trans_im_data.append((255, 255, 255, 0))
+            else:
+                trans_im_data.append(item)
+        
+        eqpot_im.putdata(trans_im_data)
+        im.paste(eqpot_im, (0, 0), eqpot_im)
+        return im
 
 
 class CubicNewtonMap(Map):
@@ -410,14 +411,7 @@ class CubicNewtonMap(Map):
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z - self.cubic(z)/self.cubic.derivative(z)
 
-    def _calculate_mandelbrot(self,
-                              res_x: int = 600,
-                              res_y: int = 600,
-                              iterations: int = 200,
-                              x_range: tuple = (-3, 3),
-                              y_range: tuple = (-3, 3),
-                              z_max: float = 3,
-                              multiprocessing: bool = False):
+    def _calculate_mandelbrot(self, **kwargs):
         raise NotImplementedError
 
     @staticmethod

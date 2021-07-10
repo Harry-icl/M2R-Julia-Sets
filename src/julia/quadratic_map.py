@@ -126,7 +126,7 @@ class QuadraticMap(Map):
                               theta: float = 0,
                               D: float = 50,
                               S: float = 20,
-                              R: float =200,
+                              R: float = 200,
                               error: float = 0.1):
         """
         Construct an array of points on the external ray of angle theta.
@@ -374,8 +374,7 @@ class QuadraticMap(Map):
                    x_range: tuple =(-3, 3),
                    y_range: tuple =(-3, 3),
                    max_n: int =5,
-                   potential: float = 1.,
-                   line_weight: int = 1) -> Image.Image:
+                   potential: float = 1.) -> Image.Image:
         if im is None:
             im = self.draw_julia(res_x=res_x,
                                  res_y=res_y,
@@ -384,13 +383,13 @@ class QuadraticMap(Map):
         else:
             res_x, res_y = im.size
         eqpot = self._calculate_eqpot(self._f,
-                                       self._bottcher,
-                                       self._potential,
-                                       self.c,
-                                       potential,
-                                       res_x, res_y,
-                                       x_range, y_range,
-                                       max_n)
+                                      self._bottcher,
+                                      self._potential,
+                                      self.c,
+                                      potential,
+                                      res_x, res_y,
+                                      x_range, y_range,
+                                      max_n)
         eqpot = np.rot90(eqpot)
         eqpot_im = Image.fromarray(np.uint8(cm.cubehelix_r(eqpot)*255)).convert("RGBA")
         im_data = eqpot_im.getdata()
@@ -423,6 +422,9 @@ class QuadraticNewtonMap(Map):
 
     def __call__(self, z: complex) -> complex:  # noqa D102
         return z - self.quadratic(z)/self.quadratic.derivative(z)
+
+    def _calculate_mandelbrot(self, **kwargs):
+        raise NotImplementedError
 
     @staticmethod
     @jit(nopython=True)
