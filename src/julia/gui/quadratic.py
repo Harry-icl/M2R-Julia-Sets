@@ -1,25 +1,31 @@
 """Module containing the QuadraticWindows class."""
+import cv2
 import numpy as np
 from math import sqrt, pi
+import PySimpleGUI as sg
 
 from julia.quadratic_map import QuadraticMap
+
+from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
+                        ITERATIONS, REC_COLOR, RAY_COLOR)
 
 
 class QuadraticWindows:
     """The class for the Quadratic GUI."""
 
-    def __init__(self, x_range_m, y_range_m, x_range_j, y_range_j, x_res_m, y_res_m, x_res_j, y_res_j, iterations, multiprocessing: bool = False):
+    def __init__(self, multiprocessing: bool = False, preimages: bool = False):
         self.multiprocessing = multiprocessing
-
-        self.iterations = iterations
+        if preimages:
+            global ITERATIONS
+            ITERATIONS = 10
 
         self.btn_down, self.drag = False, False
-        self.x_range_m, self.y_range_m = x_range_m, y_range_m
-        self.x_range_j, self.y_range_j = x_range_j, y_range_j
+        self.x_range_m, self.y_range_m = X_RANGEM0, Y_RANGEM0
+        self.x_range_j, self.y_range_j = X_RANGEM0, Y_RANGEM0
 
         self.start_coords = None
-        self.x_res_m, self.y_res_m = x_res_m, y_res_m
-        self.x_res_j, self.y_res_j = x_res_j, y_res_j
+        self.x_res_m, self.y_res_m = RESOLUTION, RESOLUTION
+        self.x_res_j, self.y_res_j = RESOLUTION, RESOLUTION
 
         self.external_rays_angles = []
         self.external_rays_angles_julia = []
@@ -29,9 +35,32 @@ class QuadraticWindows:
 
     def start(self):
         """Start the quadratic GUI."""
-        return self._refresh_mandel(), self._refresh_julia()
+        root = sg.tk.Tk()  # DO NOT DELETE LINES 33-44 OR STUFF BREAKS
+        root.withdraw()
 
-    def title_generator(self):
+        cv2.namedWindow('Loading...')
+        cv2.setWindowProperty("Loading...",
+                              cv2.WND_PROP_FULLSCREEN,
+                              cv2.WINDOW_FULLSCREEN)
+        cv2.waitKey(1)
+        cv2.setWindowProperty("Loading...",
+                              cv2.WND_PROP_FULLSCREEN,
+                              cv2.WINDOW_NORMAL)
+        cv2.destroyWindow("Loading...")
+
+        sg.SetOptions(font='Helvetica 15', border_width=5)
+        sg.theme('Material1')
+
+        self._refresh_mandel()
+        self._refresh_julia()
+
+        cv2.moveWindow('mandel', 0, 0)
+        cv2.moveWindow('julia', RESOLUTION, 0)
+        cv2.setMouseCallback('mandel', self._click_event_mandel)
+        cv2.setMouseCallback('julia', self._click_event_julia)
+        self._main_loop()
+
+    def _title_generator(self):
         func_name = "z^2 + c"
         bottom_left = ((f"{round(self.x_range_m[0], 3)} + "
                         f"{round(self.y_range_m[0], 3)}i")
@@ -45,7 +74,7 @@ class QuadraticWindows:
                            f"{round(self.y_range_m[1], 3)}i"))
         return f"Mandelbrot set of {func_name}, ({bottom_left}, {top_right})"
 
-    def title_generator_julia(self):
+    def _title_generator_julia(self):
         func_name = ((f"z^2 + ({round(self.quadratic_map.c.real, 3)} + "
                       f"{round(self.quadratic_map.c.imag, 3)})i")
                      if self.quadratic_map.c.imag >= 0
@@ -62,22 +91,20 @@ class QuadraticWindows:
                      else (f"{round(self.x_range_j[1], 3)} "
                            f"{round(self.y_range_j[1], 3)}i"))
         return f"Julia set of {func_name}, ({bottom_left}, {top_right})"
-    
-    def position_string(self, x, y):
-        return (f"{round(x, 3)} + {round(y, 3)}i"
-                if y >= 0
-                else f"{round(x, 3)} {round(y, 3)}i")
 
     def _refresh_mandel(self):
         self.pil_img_mandel = self.quadratic_map.draw_mandelbrot(
             res_x=self.x_res_m,
             res_y=self.y_res_m,
-            iterations=self.iterations,
+            iterations=ITERATIONS,
             x_range=self.x_range_m,
             y_range=self.y_range_m,
             multiprocessing=self.multiprocessing)
+        self.open_cv_image_mandel = np.array(
+            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
+        cv2.imshow('mandel', self.open_cv_image_mandel)
+        cv2.setWindowTitle('mandel', self._title_generator())
         self._draw_external_rays(self.external_rays_angles)
-        return self.pil_img_mandel
 
     def _refresh_julia(self):
         self.pil_img_julia = self.quadratic_map.draw_julia(
@@ -214,45 +241,43 @@ class QuadraticWindows:
     def _draw_external_rays(self, angles):
         for theta in angles:
             print(f"Drawing external ray at {theta}*2pi radians...")
-            ray = [self._from_complex_m(z)
-                   for z in self.quadratic_map.external_ray(theta)]
-            pairs = zip(ray[:-1], ray[1:])
-
-            for pair in pairs:
-                cv2.line(self.open_cv_image_mandel[:, :, ::-1],
-                         pair[0], pair[1],
-                         color=RAY_COLOR, thickness=1)
+            self.pil_img_mandel = self.quadratic_map.draw_ray_mandel(self.pil_img_mandel,
+                                                                     res_x=self.x_res_m,
+                                                                     res_y=self.y_res_m,
+                                                                     x_range=self.x_range_m,
+                                                                     y_range=self.y_range_m,
+                                                                     theta=theta)
+        self.open_cv_image_mandel = np.array(
+            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
         cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
         angles = [2*pi*angle for angle in angles]
         for theta in angles:
             print(f"Drawing external ray at {theta} radians...")
-            ray = [self._from_complex_j(z)
-                   for z in self.quadratic_map.external_ray_julia(theta)]
-            pairs = zip(ray[:-1], ray[1:])
-            open_cv_im_rays = self.open_cv_image_julia.copy()
-            for pair in pairs:
-                open_cv_im_rays = cv2.line(open_cv_im_rays,
-                                           pair[0], pair[1],
-                                           color=RAY_COLOR, thickness=1)
-            self.open_cv_image_julia = open_cv_im_rays
+            self.pil_img_julia = self.quadratic_map.draw_ray(self.pil_img_julia,
+                                                             res_x=self.x_res_j,
+                                                             res_y=self.y_res_j,
+                                                             x_range=self.x_range_j,
+                                                             y_range=self.y_range_j,
+                                                             angle=theta)
+        self.open_cv_image_julia = np.array(
+            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
         for potential in potentials:
             print(f"Drawing equipotential line at {potential}...")
-            equipotential_im = self.quadratic_map.draw_equipotential(
-                potential,
+            equipotential_im = self.quadratic_map.draw_eqpot(
+                im=self.pil_img_julia,
                 res_x=self.x_res_j,
                 res_y=self.y_res_j,
                 x_range=self.x_range_j,
-                y_range=self.y_range_j
+                y_range=self.y_range_j,
+                potential=potential
             )
-            open_cv_equi_im = np.array(
+            self.open_cv_image_julia = np.array(
                 equipotential_im.convert('RGB'))[:, :, ::-1]
-            self.open_cv_image_julia = np.minimum(self.open_cv_image_julia,
-                                                  open_cv_equi_im)
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):

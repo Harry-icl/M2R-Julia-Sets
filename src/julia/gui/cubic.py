@@ -256,40 +256,40 @@ class CubicWindows:
     def _draw_external_rays(self, angles):
         for theta in angles:
             print(f"Drawing external ray at {theta}*2pi radians...")
-            ray = [self._from_complex_m(z)
-                   for z in self.cubic_map.external_ray(theta)]
-            pairs = zip(ray[:-1], ray[1:])
-
-            for pair in pairs:
-                cv2.line(self.open_cv_image_mandel[:, :, ::-1],
-                         pair[0], pair[1],
-                         color=RAY_COLOR, thickness=1)
+            self.pil_img_mandel = self.cubic_map.draw_ray_mandel(self.pil_img_mandel,
+                                                                 res_x=self.x_res_m,
+                                                                 res_y=self.y_res_m,
+                                                                 x_range=self.x_range_m,
+                                                                 y_range=self.y_range_m,
+                                                                 theta=theta)
+        self.open_cv_image_mandel = np.array(
+            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
         cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
         angles = set(2*pi*angle for angle in angles)
         for theta in angles:
             print(f"Drawing external ray at {theta} radians...")
-            ray = [self._from_complex_j(z)
-                   for z in self.cubic_map.external_ray_julia(theta)]
-            pairs = zip(ray[:-1], ray[1:])
-            open_cv_im_rays = self.open_cv_image_julia.copy()
-            for pair in pairs:
-                cv2.line(open_cv_im_rays,
-                         pair[0], pair[1],
-                         color=RAY_COLOR, thickness=1)
-            self.open_cv_image_julia = open_cv_im_rays
+            self.pil_img_julia = self.cubic_map.draw_ray(self.pil_img_julia,
+                                                         res_x=self.x_res_j,
+                                                         res_y=self.y_res_j,
+                                                         x_range=self.x_range_j,
+                                                         y_range=self.y_range_j,
+                                                         angle=theta)
+        self.open_cv_image_julia = np.array(
+            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
         for potential in potentials:
             print(f"Drawing equipotential line at {potential}...")
-            equipotential_im = self.cubic_map.draw_equipotential(
-                potential,
+            equipotential_im = self.cubic_map.draw_eqpot(
+                im=self.pil_img_julia,
                 res_x=self.x_res_j,
                 res_y=self.y_res_j,
                 x_range=self.x_range_j,
-                y_range=self.y_range_j
+                y_range=self.y_range_j,
+                potential=potential
             )
             open_cv_equi_im = np.array(
                 equipotential_im.convert('RGB'))[:, :, ::-1]

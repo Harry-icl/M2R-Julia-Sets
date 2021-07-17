@@ -196,7 +196,11 @@ class CubicMap(Map):
         else:
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
-        ray = self._calculate_ray_mandel(**kwargs)
+        ray = self._calculate_ray_mandel(res_x=res_x,
+                                         res_y=res_y,
+                                         x_range=x_range,
+                                         y_range=y_range,
+                                         **kwargs)
         d.line(ray, fill=(0, 0, 0),
                width=line_weight, joint="curve")
         return im

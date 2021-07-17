@@ -314,13 +314,13 @@ class QuadraticMap(Map):
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
         ray = self._calculate_ray(res_x=res_x,
-                                    res_y=res_y,
-                                    x_range=x_range,
-                                    y_range=y_range,
-                                    angle=angle,
-                                    res_ray=res_ray,
-                                    phi_iters=phi_iters,
-                                    newt_iters=newt_iters)
+                                  res_y=res_y,
+                                  x_range=x_range,
+                                  y_range=y_range,
+                                  angle=angle,
+                                  res_ray=res_ray,
+                                  phi_iters=phi_iters,
+                                  newt_iters=newt_iters)
         d.line(ray, fill=(0, 0, 0),
                 width=line_weight, joint="curve")
         return im
