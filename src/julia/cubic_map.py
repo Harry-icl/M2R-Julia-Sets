@@ -32,7 +32,7 @@ class CubicMap(Map):
         """
         self.a = a
         self.b = b
-    
+
     @property
     def roots(self):
         if self.a == self.b == 0:
@@ -149,7 +149,7 @@ class CubicMap(Map):
                                  (res_y, res_x))
 
         return results
-    
+
     @staticmethod
     @jit(nopython=True)
     def _q(z, a, b):
@@ -171,13 +171,13 @@ class CubicMap(Map):
         return 3*z**2 - a
 
     @ staticmethod
-    @ jit(nopython=False) 
+    @ jit(nopython=False)
     def _phi_newton(w_list, a, b, f, df, q, dq, phi_iters, newt_iters):
         z = w_list[0]
         z_list = []
         for w in w_list:
             for i in range(newt_iters):
-                phi = z * q(z, a, b)**(1.0/3.0) 
+                phi = z * q(z, a, b)**(1.0/3.0)
                 dphi = 1/z + dq(z, a, b)/(3*q(z, a, b))
                 prev_f = z
                 prev_df = complex(1)
@@ -201,12 +201,12 @@ class CubicMap(Map):
         return z_list
 
     def external_ray_julia(self,
-                     angle: float = 0,
-                     res_ray: int = 2048,
-                     phi_iters: int = 128,
-                     newt_iters: int = 256):
+                           angle: float = 0,
+                           res_ray: int = 2048,
+                           phi_iters: int = 128,
+                           newt_iters: int = 256):
         w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+                           np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
         result_list = self._phi_newton(w_list,
                                        self.a,
                                        self.b,
@@ -228,7 +228,7 @@ class CubicMap(Map):
                        phi_iters: int = 128,
                        newt_iters: int = 256):
         w_list = np.array([cmath.rect(1/np.sin(r), angle) for r in
-                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
+                           np.linspace(0, np.pi/2, res_ray+2)[1:-1]])
         result_list = self._phi_newton(w_list,
                                        self.a,
                                        self.b,
@@ -265,25 +265,26 @@ class CubicMap(Map):
             res_x, res_y = im.size
         d = ImageDraw.Draw(im)
         ray = self._calculate_ray(res_x=res_x,
-                                    res_y=res_y,
-                                    x_range=x_range,
-                                    y_range=y_range,
-                                    angle=angle,
-                                    res_ray=res_ray,
-                                    phi_iters=phi_iters,
-                                    newt_iters=newt_iters)
+                                  res_y=res_y,
+                                  x_range=x_range,
+                                  y_range=y_range,
+                                  angle=angle,
+                                  res_ray=res_ray,
+                                  phi_iters=phi_iters,
+                                  newt_iters=newt_iters)
         d.line(ray, fill=(0, 0, 0),
-                width=line_weight, joint="curve")
+               width=line_weight, joint="curve")
         return im
+
     @staticmethod
     @jit(nopython=True)
     def _f(z, a, b):
         return z**3 - a*z + b
-        
+
     @staticmethod
     @jit(nopython=True)
     def _bottcher(f, z, a, b, max_n=5):
-        if a==0 and b==0:
+        if a == 0 and b == 0:
             return z
         else:
             total = 1
@@ -294,12 +295,12 @@ class CubicMap(Map):
                 total *= (1 - a/(f_n**2) + b/(f_n**3))**(1/(3**n))
             total = z * total
             return total
-    
+
     @staticmethod
     @jit(nopython=True)
     def _potential(f, bottcher, z, a, b, max_n=5):
         return math.log(abs(bottcher(f, z, a, b, max_n)))
-    
+
     @staticmethod
     @jit(nopython=True)
     def _calculate_equipotential(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
@@ -316,10 +317,10 @@ class CubicMap(Map):
                 pot2 = potential(f, bottcher, c2, a, b, max_n)
                 pot3 = potential(f, bottcher, c3, a, b, max_n)
                 pot4 = potential(f, bottcher, c4, a, b, max_n)
-                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4):
                     results[x_i, y_i] = 1
         return results
-    
+
     @staticmethod
     @jit(nopython=True)
     def _calculate_equipotential_complex(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
@@ -354,7 +355,7 @@ class CubicMap(Map):
         results = np.rot90(results)
         im = Image.fromarray(np.uint8(cm.cubehelix_r(results)*255))
         return im
-    
+
     def external_ray(self, theta, D=20, S=10, R=50, error=0.01):
         """
         Construct an array of points on the external ray of angle theta.
@@ -376,7 +377,8 @@ class CubicMap(Map):
         for i in range(1, D + 1):
             for q in range(1, S + 1):
                 r_m = R ** (1 / (2 ** (i - 1 + q / S)))
-                t_m = r_m**(2**(i)) * cmath.exp(2 * np.pi * 1j * theta * 3**(i))
+                t_m = r_m**(2**(i)) * cmath.exp(2 *
+                                                np.pi * 1j * theta * 3**(i))
                 b_next = points[-1]
                 b_previous = 0
                 while abs(b_previous - b_next) >= error:
@@ -390,7 +392,7 @@ class CubicMap(Map):
                 points.append(b_next)
         points = filter(lambda x: abs(x.real) < 3 and abs(x.imag) < 3, points)
         return points
-    
+
     def draw_ray_mandel(self, theta, D=50, S=20, R=200, error=0.001):
 
         results = self.external_ray(theta, D, S, R, error)
@@ -399,6 +401,7 @@ class CubicMap(Map):
         y = [x[1] for x in results]
         plt.plot(x, y)
         plt.show()
+
 
 class CubicNewtonMap(Map):
     """A Newton map f(z) = z - g'(z)/g(z) where g is cubic."""
@@ -554,8 +557,9 @@ class CubicNewtonMap(Map):
                 return cmath.sqrt(-a/2)/z
             return (3*r**2*z+3*r**2-a)/(3*r*z)
 
-        z_list = np.zeros((w_list.shape[0]*len(roots), w_list.shape[1]),
-                          dtype=np.cdouble)
+        z_list = np.full((w_list.shape[0]*len(roots), w_list.shape[1]),
+                         np.nan,
+                         dtype=np.cdouble)
         for root_idx, r in enumerate(roots):
             pow = 3. if r == 0 else 2.
             for m, row in enumerate(w_list):
@@ -588,6 +592,35 @@ class CubicNewtonMap(Map):
                     z_list[len(roots)*m+root_idx, n] = _psi_inv(z, r)
         return z_list
 
+    @staticmethod
+    @jit(nopython=True)
+    def _preimage(w_lists, a, b):
+        preimgs = np.full((w_lists.shape[0]*3, w_lists.shape[1]),
+                          np.nan,
+                          dtype=np.cdouble)
+        for i, w_list in enumerate(w_lists):
+            for j, w in enumerate(w_list):
+                p = 3 * w**2 / 4
+                q = (2*a*w - 2*b - w**3)/4
+                if p == q == 0:
+                    preimgs[i:i+3, j] = [complex(0), complex(0), complex(0)]
+                    continue
+                elif q == 0:
+                    preimgs[i:i+3, j] = [w / 2,
+                                         (1 + 3**0.5)*w/2,
+                                         (1-3**0.5)*w/2]
+                    continue
+                elif p == 0:
+                    gamma = complex((-q)**(1/3))
+                else:
+                    gamma = (-q/2+cmath.sqrt(q**2/4-p**3/27))**(1/3)
+                omega = cmath.rect(1, 2*np.pi/3)
+                omega_ = cmath.rect(1, -2*np.pi/3)
+                preimgs[i:i+3, j] = [gamma + p/(3*gamma) + w/2,
+                                     gamma*omega + p/(3*gamma)*omega_ + w/2,
+                                     gamma*omega_ + p/(3*gamma)*omega + w/2]
+        return preimgs
+
     def _calculate_ray(self,
                        res_x: int = 600,
                        res_y: int = 600,
@@ -596,21 +629,28 @@ class CubicNewtonMap(Map):
                        angles: list = [0.],
                        res_ray: int = 1024,
                        phi_iters: int = 128,
-                       newt_iters: int = 256):
+                       newt_iters: int = 256,
+                       gen: int = 0):
         w_list = np.array([[cmath.rect(1/np.sin(r), angle) for r in
-                          np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
-                          for angle in angles])
+                            np.linspace(0, np.pi/2, res_ray+2)[1:-1]]
+                           for angle in angles])
         result_list = self._phi_inv(w_list,
                                     self.cubic.roots,
                                     self.cubic.a,
                                     phi_iters,
                                     newt_iters)
+        ray_list = [result_list]
+        for i in range(gen):
+            ray_list.append(self._preimage(ray_list[i],
+                                           self.cubic.a,
+                                           self.cubic.b))
+        rays = np.concatenate(ray_list)
         return map(list, list(map(partial(map, partial(complex_to_pixel,
                                                        res_x=res_x,
                                                        res_y=res_y,
                                                        x_range=x_range,
                                                        y_range=y_range)),
-                                  result_list)))
+                                  rays)))
 
     def draw_ray(self,
                  im: Image = None,
@@ -622,7 +662,7 @@ class CubicNewtonMap(Map):
                  res_ray: int = 1024,
                  phi_iters: int = 128,
                  newt_iters: int = 128,
-                 line_weight: int = 1):
+                 gen: int = 0):
         """
         Draw internal rays of the specified angle at all roots.
 
@@ -647,8 +687,8 @@ class CubicNewtonMap(Map):
             The number of iterations used to approximate phi.
         newt_iters: int
             The number of Newton iterates used to solve the inverse.
-        line_weight: int
-            The pixel width of the ray.
+        gen : int
+            The number of preimage generations to draw.
 
         Returns
         -------
@@ -670,10 +710,10 @@ class CubicNewtonMap(Map):
                                    angles=angles,
                                    res_ray=res_ray,
                                    phi_iters=phi_iters,
-                                   newt_iters=newt_iters)
+                                   newt_iters=newt_iters,
+                                   gen=gen)
         for ray in rays:
-            d.line(ray, fill=(255, 255, 255),
-                   width=line_weight, joint="curve")
+            d.point(ray, fill=(255, 255, 255))
         return im
 
     @staticmethod
@@ -732,8 +772,8 @@ class CubicNewtonMap(Map):
                          phi_iters: int = 128,
                          newt_iters: int = 128):
         w_list = np.array([[cmath.rect(np.exp(potential), angle) for angle in
-                           np.linspace(-np.pi, np.pi, res_eqpot+1)]
-                          for potential in potentials])
+                            np.linspace(-np.pi, np.pi, res_eqpot+1)]
+                           for potential in potentials])
         result_list = self._phi_inv(w_list,
                                     self.cubic.roots,
                                     self.cubic.a,

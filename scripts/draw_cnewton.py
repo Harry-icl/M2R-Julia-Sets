@@ -14,9 +14,8 @@ im = cnewt.draw_julia(res_x=600, res_y=600,
                       x_range=x_range, y_range=y_range, iterations=16)
 print(cnewt.cubic.roots)
 
-im = cnewt.draw_ray(im=im, line_weight=1,
-                    x_range=x_range, y_range=y_range,
-                    angles=[2*np.pi/12*i for i in range(12)])
+im = cnewt.draw_ray(im=im, x_range=x_range, y_range=y_range,
+                    angles=[0], gen=1, res_ray=8192)
 
 
 # t_0 = time()
