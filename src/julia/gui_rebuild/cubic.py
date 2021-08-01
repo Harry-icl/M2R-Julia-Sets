@@ -7,7 +7,7 @@ import PySimpleGUI as sg
 from julia.cubic_map import CubicMap
 
 from .constants import (X_RANGEM0, Y_RANGEM0, X_RANGEJ0, Y_RANGEJ0, RESOLUTION,
-                        ITERATIONS, REC_COLOR, RAY_COLOR)
+                        ITERATIONS, REC_COLOR)
 
 
 class CubicWindows:
@@ -256,12 +256,14 @@ class CubicWindows:
     def _draw_external_rays(self, angles):
         for theta in angles:
             print(f"Drawing external ray at {theta}*2pi radians...")
-            self.pil_img_mandel = self.cubic_map.draw_ray_mandel(self.pil_img_mandel,
-                                                                 res_x=self.x_res_m,
-                                                                 res_y=self.y_res_m,
-                                                                 x_range=self.x_range_m,
-                                                                 y_range=self.y_range_m,
-                                                                 theta=theta)
+            self.pil_img_mandel = self.cubic_map.draw_ray_mandel(
+                self.pil_img_mandel,
+                res_x=self.x_res_m,
+                res_y=self.y_res_m,
+                x_range=self.x_range_m,
+                y_range=self.y_range_m,
+                theta=theta
+            )
         self.open_cv_image_mandel = np.array(
             self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
         cv2.imshow('mandel', self.open_cv_image_mandel)
@@ -270,12 +272,14 @@ class CubicWindows:
         angles = set(2*pi*angle for angle in angles)
         for theta in angles:
             print(f"Drawing external ray at {theta} radians...")
-            self.pil_img_julia = self.cubic_map.draw_ray(self.pil_img_julia,
-                                                         res_x=self.x_res_j,
-                                                         res_y=self.y_res_j,
-                                                         x_range=self.x_range_j,
-                                                         y_range=self.y_range_j,
-                                                         angle=theta)
+            self.pil_img_julia = self.cubic_map.draw_ray(
+                self.pil_img_julia,
+                res_x=self.x_res_j,
+                res_y=self.y_res_j,
+                x_range=self.x_range_j,
+                y_range=self.y_range_j,
+                angle=theta
+            )
         self.open_cv_image_julia = np.array(
             self.pil_img_julia.convert('RGB'))[:, :, ::-1]
         cv2.imshow('julia', self.open_cv_image_julia)

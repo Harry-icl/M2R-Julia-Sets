@@ -340,12 +340,17 @@ class CubicMap(Map):
     
     @staticmethod
     @jit(nopython=True)
-    def _calculate_eqpot(f, bottcher, potential, a, b, equipotential, res_x=600, res_y=600, x_range=(-3, 3), y_range=(-3, 3), max_n=5):
+    def _calculate_eqpot(f, bottcher, potential, a, b, equipotential,
+                         res_x=600, res_y=600,
+                         x_range=(-3, 3), y_range=(-3, 3),
+                         max_n=5):
         results = np.zeros((res_x, res_y))
         step_x = abs((x_range[1] - x_range[0])/res_x)
         step_y = abs((y_range[1] - y_range[0])/res_y)
         for x_i, x in enumerate(np.linspace(x_range[0], x_range[1], res_x)):
-            for y_i, y in enumerate(np.linspace(y_range[0], y_range[1], res_y)):
+            for y_i, y in enumerate(np.linspace(y_range[0],
+                                                y_range[1],
+                                                res_y)):
                 c1 = complex(x, y)
                 c2 = complex(x + step_x, y)
                 c3 = complex(x, y + step_y)
@@ -354,7 +359,9 @@ class CubicMap(Map):
                 pot2 = potential(f, bottcher, c2, a, b, max_n)
                 pot3 = potential(f, bottcher, c3, a, b, max_n)
                 pot4 = potential(f, bottcher, c4, a, b, max_n)
-                if min(pot1, pot2, pot3, pot4) <= equipotential <= max(pot1, pot2, pot3, pot4) :
+                if (min(pot1, pot2, pot3, pot4)
+                    <= equipotential
+                    <= max(pot1, pot2, pot3, pot4)):
                     results[x_i, y_i] = 1
         return results
 
@@ -383,7 +390,9 @@ class CubicMap(Map):
                                       x_range, y_range,
                                       max_n)
         eqpot = np.rot90(eqpot)
-        eqpot_im = Image.fromarray(np.uint8(cm.cubehelix_r(eqpot)*255)).convert("RGBA")
+        eqpot_im = Image.fromarray(
+            np.uint8(cm.cubehelix_r(eqpot)*255)
+        ).convert("RGBA")
         im_data = eqpot_im.getdata()
 
         trans_im_data = []
@@ -392,7 +401,7 @@ class CubicMap(Map):
                 trans_im_data.append((255, 255, 255, 0))
             else:
                 trans_im_data.append(item)
-        
+
         eqpot_im.putdata(trans_im_data)
         im.paste(eqpot_im, (0, 0), eqpot_im)
         return im
@@ -694,8 +703,7 @@ class CubicNewtonMap(Map):
             return (3*r**2 - a)/(3*r*z - 3*r**2)
 
         z_list = [False for i in enumerate(sample_list)]
-        pots = [0., 0., 0., 0.]
-        for root_idx, r in enumerate(roots):
+        for r in roots:
             pow = 3. if r == 0 else 2.
             for j, z in enumerate(sample_list):
                 z = psi(z, r)
