@@ -1,8 +1,6 @@
 """Module containing the QuadraticWindows class."""
-import cv2
 import numpy as np
 from math import sqrt, pi
-import PySimpleGUI as sg
 
 from julia.quadratic_map import QuadraticMap
 
@@ -35,30 +33,8 @@ class QuadraticWindows:
 
     def start(self):
         """Start the quadratic GUI."""
-        root = sg.tk.Tk()  # DO NOT DELETE LINES 33-44 OR STUFF BREAKS
-        root.withdraw()
-
-        cv2.namedWindow('Loading...')
-        cv2.setWindowProperty("Loading...",
-                              cv2.WND_PROP_FULLSCREEN,
-                              cv2.WINDOW_FULLSCREEN)
-        cv2.waitKey(1)
-        cv2.setWindowProperty("Loading...",
-                              cv2.WND_PROP_FULLSCREEN,
-                              cv2.WINDOW_NORMAL)
-        cv2.destroyWindow("Loading...")
-
-        sg.SetOptions(font='Helvetica 15', border_width=5)
-        sg.theme('Material1')
-
         self._refresh_mandel()
         self._refresh_julia()
-
-        cv2.moveWindow('mandel', 0, 0)
-        cv2.moveWindow('julia', RESOLUTION, 0)
-        cv2.setMouseCallback('mandel', self._click_event_mandel)
-        cv2.setMouseCallback('julia', self._click_event_julia)
-        self._main_loop()
 
     def _title_generator(self):
         func_name = "z^2 + c"
@@ -100,10 +76,6 @@ class QuadraticWindows:
             x_range=self.x_range_m,
             y_range=self.y_range_m,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_mandel = np.array(
-            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
-        cv2.imshow('mandel', self.open_cv_image_mandel)
-        cv2.setWindowTitle('mandel', self._title_generator())
         self._draw_external_rays(self.external_rays_angles)
 
     def _refresh_julia(self):
@@ -114,10 +86,6 @@ class QuadraticWindows:
             x_range=self.x_range_j,
             y_range=self.y_range_j,
             multiprocessing=self.multiprocessing)
-        self.open_cv_image_julia = np.array(
-            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
-        cv2.imshow('julia', self.open_cv_image_julia)
-        cv2.setWindowTitle('julia', self._title_generator_julia())
         self._draw_external_rays_julia(self.external_rays_angles_julia)
         self._draw_equipotentials(self.equipotentials)
 
@@ -249,9 +217,6 @@ class QuadraticWindows:
                 y_range=self.y_range_m,
                 theta=theta
             )
-        self.open_cv_image_mandel = np.array(
-            self.pil_img_mandel.convert('RGB'))[:, :, ::-1]
-        cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
         angles = [2*pi*angle for angle in angles]
@@ -265,9 +230,6 @@ class QuadraticWindows:
                 y_range=self.y_range_j,
                 angle=theta
             )
-        self.open_cv_image_julia = np.array(
-            self.pil_img_julia.convert('RGB'))[:, :, ::-1]
-        cv2.imshow('julia', self.open_cv_image_julia)
 
     def _draw_equipotentials(self, potentials):
         for potential in potentials:
@@ -280,9 +242,6 @@ class QuadraticWindows:
                 y_range=self.y_range_j,
                 potential=potential
             )
-            self.open_cv_image_julia = np.array(
-                equipotential_im.convert('RGB'))[:, :, ::-1]
-        cv2.imshow('julia', self.open_cv_image_julia)
 
     def _main_loop(self):
         while True:

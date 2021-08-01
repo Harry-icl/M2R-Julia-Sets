@@ -18,7 +18,7 @@ setup(
     packages=find_packages(where="src"),
     python_requires=">=3.6",
     install_requires=[
-        'numpy',
+        'numpy==1.19.3',
         'matplotlib',
         'numba',
         'Pillow',
