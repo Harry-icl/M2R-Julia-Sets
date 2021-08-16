@@ -33,8 +33,8 @@ def main():
         [sg.Menu(menu_def, font=(None, 14))],
         [sg.Text('Connectedness locus', justification='center', font=('Helvetica', 15), key='mandel_title'),
          sg.Text('Julia set', justification='center', font=('Helvetica', 15), key='julia_title')],
-        [sg.Graph(key="mandel", graph_bottom_left=(-3, -3), graph_top_right=(3, 3), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True),
-         sg.Graph(key="julia", graph_bottom_left=(-3, -3), graph_top_right=(3, 3), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True)],
+        [sg.Graph(key="mandel", graph_bottom_left=(-3000, -3000), graph_top_right=(3000, 3000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True),
+         sg.Graph(key="julia", graph_bottom_left=(-3000, -3000), graph_top_right=(3000, 3000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True)],
         [sg.Text('Placeholder for mandel location', justification='center', font=('Helvetica', 15), key='mandel_pos'),
          sg.Text('Placeholder for julia location', justification='center', font=('Helvetica', 15), key='julia_pos')]
     ]
@@ -48,29 +48,39 @@ def main():
 
     window = sg.Window("", layout=normal_layout, icon=ICON, resizable=True, titlebar_icon=ICON, finalize=True)
 
-    window['mandel'].draw_image(data=bio_mandel.getvalue(), location=(-3, 3))
-    window['julia'].draw_image(data=bio_julia.getvalue(), location=(-3, 3))
+    window['mandel'].draw_image(data=bio_mandel.getvalue(), location=(-3000, 3000))
+    window['julia'].draw_image(data=bio_julia.getvalue(), location=(-3000, 3000))
     window['mandel'].set_cursor('dotbox')
     window['julia'].set_cursor('dotbox')
     window['mandel_title'].expand(True)
     window['julia_title'].expand(True)
     window['mandel_pos'].expand(True)
     window['julia_pos'].expand(True)
+
+    mouse_down = False
+    current_rec = None
     
     while True:
         event, values = window.Read()
         if event is None or event == 'Exit':
             quit()
-        elif event == "mandel":
-            print("clicked on mandel", event)
+        elif event == "mandel" and not mouse_down:
+            start_coords = values['mandel']
+            current_rec = window["mandel"].draw_rectangle(start_coords, start_coords, line_color='red')
+            mouse_down = "mandel"
+            print("clicked on mandel", event, values)
+        elif event == "mandel" and mouse_down == "mandel":
+            window['mandel'].delete_figure(current_rec)
+            current_rec = window['mandel'].draw_rectangle(start_coords, values['mandel'], line_color='red')
+            print("clicked on mandel", event, values)
+        elif event == "mandel+UP" and mouse_down == "mandel":
+            window['mandel'].delete_figure(current_rec)
+            current_rec = None
+            mouse_down = False
         elif event == "julia":
-            print("clicked on julia", event)
-        elif event.endswith('+RIGHT+'):
-            print("right click", event)
-        elif event.endswith('+UP'):
-            print("left mouse up", event)
-        elif event.endswith('+MOTION+'):
-            print("mouse moving", event)
+            print("clicked on julia", event, values)
+        elif event == "julia+UP" and mouse_down == "julia":
+            print("left mouse up on julia", event, values)
         else:
-            print(event)
+            print("Unrecognised interaction: ", event, values)
         
