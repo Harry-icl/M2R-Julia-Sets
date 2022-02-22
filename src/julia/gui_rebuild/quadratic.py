@@ -254,7 +254,7 @@ class QuadraticWindows:
         cv2.imshow('mandel', self.open_cv_image_mandel)
 
     def _draw_external_rays_julia(self, angles):
-        angles = [2*pi*angle for angle in angles]
+        angles *= 2*np.pi
         for theta in angles:
             print(f"Drawing external ray at {theta} radians...")
             self.pil_img_julia = self.quadratic_map.draw_ray(

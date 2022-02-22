@@ -238,13 +238,15 @@ class QuadraticMap(Map):
     def _df(z):
         return 2*z
 
-    @ staticmethod
-    @ jit(nopython=False) 
+    @staticmethod
+    @jit(nopython=True) 
     def _phi_newton(w_list, c, f, df, q, dq, phi_iters, newt_iters):
-        z = w_list[0]
+        z = w_list[0]# np.argmax(w_list != 0)]
         z_list = []
         for w in w_list:
             for i in range(newt_iters):
+                if z == 0:
+                    return z_list
                 phi = z * q(z, c)**(1.0/2.0) 
                 dphi = 1/z + dq(z, c)/(2*q(z, c))
                 prev_f = z
@@ -252,9 +254,12 @@ class QuadraticMap(Map):
                 for k in range(2, phi_iters):
                     prev_df *= df(prev_f)
                     prev_f = f(prev_f, c)
-                    factor = q(prev_f, c)**(2.0**-k)
+                    if prev_f == 0:
+                        continue
+                    q_prev_f = q(prev_f, c)
+                    factor = q_prev_f**(2.0**-k)
                     summand = ((2.0**-k)*dq(prev_f, c)
-                               / q(prev_f, c)*prev_df)
+                               / q_prev_f*prev_df) if q_prev_f*prev_df != 0 else np.nan
                     if not (cmath.isnan(factor) or cmath.isnan(summand)):
                         phi *= factor
                         dphi += summand
@@ -264,7 +269,10 @@ class QuadraticMap(Map):
                         dphi += summand
                     else:
                         break
-                z = z-1/dphi*(1-w/phi)
+                if dphi != 0 and phi != 0:
+                    z = z-1/dphi*(1-w/phi)
+                else:
+                    return z_list
             z_list.append(z)
         return z_list
 
