@@ -11,7 +11,7 @@ def main():
     root = tkinter.Tk()
     root.withdraw()
 
-    sg.theme('Material1')
+    sg.theme('SystemDefault')
 
     win_obj = QuadraticWindows()
     win_obj.start()
@@ -24,7 +24,7 @@ def main():
     menu_def = [['File', ['Save Image', 'Save Configuration', 'Open Configuration']],
                 ['Draw', ['Zoom in', 'Zoom out', 'Set parameters', 'Change resolution']],
                 ['Rays', ['Draw external/internal ray(s)', ['Julia set', 'Connectedness locus']]],
-                ['Equipotentials', ['Draw equipotential line(s)', ['Julia set', 'Connectedness locus']]],
+                ['Equipotentials', ['Draw equipotential line(s)']],
                 ['Function',['Quadratic', ['z^2 + c'],
                              'Cubic', ['z^3 - az + b', 'z^3 + b', 'z^3 - az'],
                              "Newton mapping (z - f(z)/f'(z))", ['f(z) = z^2 + c', 'f(z) = z^3 - az + b']]]]
@@ -33,8 +33,8 @@ def main():
         [sg.Menu(menu_def, font=(None, 14))],
         [sg.Text('Connectedness locus', justification='center', font=('Helvetica', 15), key='mandel_title'),
          sg.Text('Julia set', justification='center', font=('Helvetica', 15), key='julia_title')],
-        [sg.Graph(key="mandel", graph_bottom_left=(-3000, -3000), graph_top_right=(3000, 3000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True),
-         sg.Graph(key="julia", graph_bottom_left=(-3000, -3000), graph_top_right=(3000, 3000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True)],
+        [sg.Graph(key="mandel", graph_bottom_left=(0, 0), graph_top_right=(1000, 1000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True),
+         sg.Graph(key="julia", graph_bottom_left=(0, 0), graph_top_right=(1000, 1000), canvas_size=(RESOLUTION, RESOLUTION), enable_events=True, drag_submits=True)],
         [sg.Text('Placeholder for mandel location', justification='center', font=('Helvetica', 15), key='mandel_pos'),
          sg.Text('Placeholder for julia location', justification='center', font=('Helvetica', 15), key='julia_pos')]
     ]
@@ -48,8 +48,8 @@ def main():
 
     window = sg.Window("", layout=normal_layout, icon=ICON, resizable=True, titlebar_icon=ICON, finalize=True)
 
-    window['mandel'].draw_image(data=bio_mandel.getvalue(), location=(-3000, 3000))
-    window['julia'].draw_image(data=bio_julia.getvalue(), location=(-3000, 3000))
+    window['mandel'].draw_image(data=bio_mandel.getvalue(), location=(0, 1000))
+    window['julia'].draw_image(data=bio_julia.getvalue(), location=(0, 1000))
     window['mandel'].set_cursor('dotbox')
     window['julia'].set_cursor('dotbox')
     window['mandel_title'].expand(True)
@@ -81,6 +81,15 @@ def main():
             print("clicked on julia", event, values)
         elif event == "julia+UP" and mouse_down == "julia":
             print("left mouse up on julia", event, values)
+        elif event == "Save Image":
+            layout = [[
+                sg.InputText(key='File to Save', default_text='filename', enable_events=True),
+                sg.InputText(key='Save As', do_not_clear=False, enable_events=True, visible=False),
+                sg.FileSaveAs(initial_folder='/tmp')
+            ]]
+            popup_win = sg.Window('', layout)
+            event, _ = popup_win.read()
         else:
             print("Unrecognised interaction: ", event, values)
+        # Left to implement: Click and drag functionality, Save Image, Save Configuration, Open Configuration, Zoom in, Zoom out, Set parameters, Change resolution, Julia set, Connectedness locus, Draw equipotential line(s), z^2 + c, z^3 - az + b, z^3 + b, z^3 - az, f(z) = z^2 + c, f(z) = z^3 - az + b
         
