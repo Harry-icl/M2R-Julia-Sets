@@ -24,5 +24,6 @@ setup(
         'Pillow',
         'opencv-python',
         'PySimpleGUI',
+        'maturin',
     ],
 )

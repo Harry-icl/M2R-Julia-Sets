@@ -9,6 +9,7 @@ import math
 from matplotlib import cm
 from numbers import Number
 from PIL import Image, ImageDraw
+import rustlib
 
 from .map import Map, complex_to_pixel
 
@@ -90,29 +91,9 @@ class CubicMap(Map):
                               multiprocessing: bool = False) -> np.ndarray:
         if not isinstance(self.a, Number):
             raise ValueError(f"Expected Number for a, got {type(self.a)}.")
-        c1 = -cmath.sqrt(self.a/3)
-        c2 = cmath.sqrt(self.a/3)
-        num_list = [complex(x, y)
-                    for y in np.linspace(y_range[0], y_range[1], res_y)
-                    for x in np.linspace(x_range[0], x_range[1], res_x)]
-        if multiprocessing:
-            pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._escape_time_mandelbrot,
-                                           a=self.a,
-                                           c1=c1,
-                                           c2=c2,
-                                           iterations=iterations,
-                                           z_max=z_max), num_list)
-            results = np.reshape(result_list, (res_y, res_x))
-        else:
-            result_list = map(partial(self._escape_time_mandelbrot,
-                                      a=self.a,
-                                      c1=c1,
-                                      c2=c2,
-                                      iterations=iterations,
-                                      z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float),
-                                 (res_y, res_x))
+        
+        results = rustlib.calculate_mandelbrot_cubic(self.a, res_x, res_y, iterations, x_range[0], x_range[1],
+                                                     y_range[0], y_range[1], z_max)
 
         return results
 
@@ -128,25 +109,9 @@ class CubicMap(Map):
             raise ValueError(f"Expected Number for a, got {type(self.a)}.")
         if not isinstance(self.b, Number):
             raise ValueError(f"Expected Number for b, got {type(self.b)}.")
-        num_list = [complex(x, y)
-                    for y in np.linspace(y_range[0], y_range[1], res_y)
-                    for x in np.linspace(x_range[0], x_range[1], res_x)]
-        if multiprocessing:
-            pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._escape_time_julia,
-                                           a=self.a,
-                                           b=self.b,
-                                           iterations=iterations,
-                                           z_max=z_max), num_list)
-            results = np.reshape(result_list, (res_y, res_x))
-        else:
-            result_list = map(partial(self._escape_time_julia,
-                                      a=self.a,
-                                      b=self.b,
-                                      iterations=iterations,
-                                      z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float),
-                                 (res_y, res_x))
+        
+        results = rustlib.calculate_julia_cubic(self.a, self.b, res_x, res_y, iterations, x_range[0], x_range[1],
+                                                y_range[0], y_range[1], z_max)
 
         return results
     

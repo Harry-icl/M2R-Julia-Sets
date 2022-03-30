@@ -94,24 +94,6 @@ class QuadraticMap(Map):
         results = rustlib.calculate_julia_quadratic(self.c, res_x, res_y, iterations, x_range[0], x_range[1],
                                                     y_range[0], y_range[1], z_max)
 
-        # num_list = [complex(x, y)
-        #             for y in np.linspace(y_range[0], y_range[1], res_y)
-        #             for x in np.linspace(x_range[0], x_range[1], res_x)]
-        # if multiprocessing:
-        #     pool = mp.Pool(processes=mp.cpu_count())
-        #     result_list = pool.map(partial(self._escape_time_julia,
-        #                                    c=self.c,
-        #                                    iterations=iterations,
-        #                                    z_max=z_max), num_list)
-        #     results = np.reshape(result_list, (res_y, res_x))
-        # else:
-        #     result_list = map(partial(self._escape_time_julia,
-        #                               c=self.c,
-        #                               iterations=iterations,
-        #                               z_max=z_max), num_list)
-        #     results = np.reshape(np.fromiter(result_list, dtype=float),
-        #                          (res_y, res_x))
-
         return results
 
     def _calculate_ray_mandel(self,
