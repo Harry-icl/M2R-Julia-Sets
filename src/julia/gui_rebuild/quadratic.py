@@ -36,6 +36,7 @@ class QuadraticWindows:
     def start(self):
         """Start the quadratic GUI."""
         root = sg.tk.Tk()  # DO NOT DELETE LINES 33-44 OR STUFF BREAKS
+        offset = root.winfo_screenwidth() // 2
         root.withdraw()
 
         cv2.namedWindow('Loading...')
@@ -55,7 +56,7 @@ class QuadraticWindows:
         self._refresh_julia()
 
         cv2.moveWindow('mandel', 0, 0)
-        cv2.moveWindow('julia', RESOLUTION, 0)
+        cv2.moveWindow('julia', offset, 0)
         cv2.setMouseCallback('mandel', self._click_event_mandel)
         cv2.setMouseCallback('julia', self._click_event_julia)
         self._main_loop()

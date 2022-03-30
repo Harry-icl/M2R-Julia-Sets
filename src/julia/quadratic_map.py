@@ -9,6 +9,7 @@ import math
 from PIL import Image, ImageDraw
 from matplotlib import cm
 from numbers import Number
+import rustlib
 
 from .map import Map, complex_to_pixel
 
@@ -70,22 +71,13 @@ class QuadraticMap(Map):
                               y_range: tuple = (-2, 2),
                               z_max: float = 2,
                               multiprocessing: bool = False) -> np.ndarray:
-        num_list = [complex(x, y)
-                    for y in np.linspace(y_range[0], y_range[1], res_y)
-                    for x in np.linspace(x_range[0], x_range[1], res_x)]
-        if multiprocessing:
-            pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._escape_time_mandelbrot,
-                                           iterations=iterations,
-                                           z_max=z_max), num_list)
-            results = np.reshape(result_list, (res_y, res_x))
-        else:
-            result_list = map(partial(self._escape_time_mandelbrot,
-                                      iterations=iterations,
-                                      z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float),
-                                 (res_y, res_x))
+        """
+        Essentially method wrapper for Rust function.
 
+        multiprocessing arg is present for compatibility.
+        """
+        results = rustlib.calculate_mandelbrot_quadratic(res_x, res_y, iterations, x_range[0], x_range[1],
+                                                         y_range[0], y_range[1], z_max)
         return results
 
     def _calculate_julia(self,
@@ -98,23 +90,27 @@ class QuadraticMap(Map):
                          multiprocessing: bool = False) -> np.ndarray:
         if not isinstance(self.c, Number):
             raise ValueError(f'Expected Number for c, got {type(self.c)}.')
-        num_list = [complex(x, y)
-                    for y in np.linspace(y_range[0], y_range[1], res_y)
-                    for x in np.linspace(x_range[0], x_range[1], res_x)]
-        if multiprocessing:
-            pool = mp.Pool(processes=mp.cpu_count())
-            result_list = pool.map(partial(self._escape_time_julia,
-                                           c=self.c,
-                                           iterations=iterations,
-                                           z_max=z_max), num_list)
-            results = np.reshape(result_list, (res_y, res_x))
-        else:
-            result_list = map(partial(self._escape_time_julia,
-                                      c=self.c,
-                                      iterations=iterations,
-                                      z_max=z_max), num_list)
-            results = np.reshape(np.fromiter(result_list, dtype=float),
-                                 (res_y, res_x))
+        
+        results = rustlib.calculate_julia_quadratic(self.c, res_x, res_y, iterations, x_range[0], x_range[1],
+                                                    y_range[0], y_range[1], z_max)
+
+        # num_list = [complex(x, y)
+        #             for y in np.linspace(y_range[0], y_range[1], res_y)
+        #             for x in np.linspace(x_range[0], x_range[1], res_x)]
+        # if multiprocessing:
+        #     pool = mp.Pool(processes=mp.cpu_count())
+        #     result_list = pool.map(partial(self._escape_time_julia,
+        #                                    c=self.c,
+        #                                    iterations=iterations,
+        #                                    z_max=z_max), num_list)
+        #     results = np.reshape(result_list, (res_y, res_x))
+        # else:
+        #     result_list = map(partial(self._escape_time_julia,
+        #                               c=self.c,
+        #                               iterations=iterations,
+        #                               z_max=z_max), num_list)
+        #     results = np.reshape(np.fromiter(result_list, dtype=float),
+        #                          (res_y, res_x))
 
         return results
 
